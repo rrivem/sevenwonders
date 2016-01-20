@@ -10,7 +10,7 @@ class Player {
     const USINGDISCARD = 'usingdiscard';
 
     // General player state
-    private $_id;
+    protected $_id;
     private $_name;
     private $_conn;
     private $_game;
@@ -47,8 +47,7 @@ class Player {
     public $canStealGuild;      // olympia's guild steal (b side)
 
     // Figuring out card costs
-    private $possibilities;
-
+    protected $possibilities;
     public function __construct($id, $unique) {
         $this->_name = "Guest $unique";
         $this->_id = $id;
@@ -69,7 +68,9 @@ class Player {
     public function info() {
         return "User {$this->name()} ({$this->id()})";
     }
-
+    public function isRobot() {
+        return false;
+    }
     public function getPublicInfo(){
         return array(
             'id' => $this->_id,
@@ -104,6 +105,7 @@ class Player {
         $this->canHaveFreeCard = false;
         $this->hasFreeCard = false;
         $this->canPlayTwoBuilt = false;
+        $this->canStealGuild = false;
     }
 
     public function quitGame(){
@@ -255,6 +257,7 @@ class Player {
             'rightcards' => array_map($tojson, $this->rightPlayer->cardsPlayed),
             'played' => array_map($tojson, $this->cardsPlayed),
             'rejoin' => $isRejoin,
+            'robot' => $this->isRobot()
         );
         $this->send("startinfo", $startInfo);
         if ($this->hasFreeCard)
@@ -276,19 +279,49 @@ class Player {
         }
         $this->send('joingame', array('players' => $players));
     }
-
+    public function cardCostName(Card $card, $type ){
+        if ( $type == 'play'){
+            return $card->getName();
+        } else {
+            return $type;
+        }
+    }   
     public function findCost(Card $card, $type) {
         $possibilities = $this->calculateCost($card, $type);
 
         // Save off what we just calculated so we can verify a cost strategy
         // when one is provided when playing the card
-        $this->possibilities[$card->getName()] =
-            array('combs' => $possibilities, 'type' => $type);
-
+        $this->possibilities[$this->cardCostName($card, $type)] = $possibilities;
         // Send off everything we just found
         $this->send('possibilities', array('combs' => $possibilities));
     }
+    private function getAvailableResource( $additionalResources = array(), $leftDiscount = array(), $rightDiscount = array() ) {
+		// Otherwise, we're going to have to pay for this card somehow
+        $have = array();
 
+        // We get all our resources for free
+        foreach ($this->permResources as $resource)
+            $have[] = ResourceOption::me($resource);
+		
+		foreach ($additionalResources as $resource)
+            $have[] = ResourceOption::me($resource);
+			
+        // Add in all the left player's resources, factoring in discounts
+        foreach ($this->leftPlayer->permResources as $resource) {
+            if (!$resource->buyable())
+                continue;
+            $have[] = ResourceOption::left($resource,
+                            $resource->discount($this->discounts['left'] + $leftDiscount));
+        }
+        // Add in all the right player's resources, factoring discounts
+        foreach ($this->rightPlayer->permResources as $resource) {
+            if (!$resource->buyable())
+                continue;
+            $have[] = ResourceOption::right($resource,
+                            $resource->discount($this->discounts['right'] + $rightDiscount));
+        }
+		return $have;
+	}
     private function calculateCost(Card $card, $type) {
         if ($type == 'play') {
             // check for duplicates
@@ -304,50 +337,31 @@ class Player {
             $required = $card->getResourceCost();
         } else { // $type == 'wonder'
             // Can't over-build the wonder
-            if ($this->wonderStage == count($this->wonder['stages']))
+            if ($this->wonderStage >= count($this->wonder['stages']))
                 return array();
             $stage = $this->wonder['stages'][$this->wonderStage];
             $required = $stage['requirements'];
         }
 
-        // Otherwise, we're going to have to pay for this card somehow
-        $have = array();
-
-        // We get all our resources for free
-        foreach ($this->permResources as $resource)
-            $have[] = ResourceOption::me($resource);
-        // Add in all the left player's resources, factoring in discounts
-        foreach ($this->leftPlayer->permResources as $resource) {
-            if (!$resource->buyable())
-                continue;
-            $have[] = ResourceOption::left($resource,
-                            $resource->discount($this->discounts['left']));
-        }
-        // Add in all the right player's resources, factoring discounts
-        foreach ($this->rightPlayer->permResources as $resource) {
-            if (!$resource->buyable())
-                continue;
-            $have[] = ResourceOption::right($resource,
-                            $resource->discount($this->discounts['right']));
-        }
+        $have = $this->getAvailableResource();
 
         // Figure out how we can pay neighbors to satisfy our requirements
         $possible = Resource::satisfy($required, $have,
                                       $this->coins - $card->getMoneyCost());
         return $possible;
     }
-
     public function cardCost(Card $card, $selection, $type){
         // Make sure we've pre-calculated the cost of this card and that the
         // specified selection is in bounds
-        if (!isset($this->possibilities[$card->getName()]))
+        $name = $this->cardCostName($card, $type);
+        if (!isset($this->possibilities[$name])){
+            var_dump( $this->possibilities );
             return false;
-        $arr = $this->possibilities[$card->getName()];
-        if (!isset($arr['combs'][$selection]) || $arr['type'] != $type)
-            return false;
-
-        unset($this->possibilities[$card->getName()]);
-        return $arr['combs'][$selection];
+        }
+        $arr = $this->possibilities[$name];
+        
+        unset($this->possibilities[$name]);
+        return $arr[$selection];
     }
 
     public function playWonderStage() {

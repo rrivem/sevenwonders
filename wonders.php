@@ -84,6 +84,10 @@ class SevenWonders {
 
             // select a wonder
             $wonder = $this->wonders[array_pop($wonderKeys)];
+            if ( $player->isRobot() && $wonder['name'] == "halikarnassus" ){
+                // robots don't play this wonder
+                $wonder = $this->wonders[array_pop($wonderKeys)];
+            }
             $player->wonderName = $wonder['name'];
         }
 

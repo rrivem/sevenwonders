@@ -17,6 +17,7 @@ function gentoken() {
 require_once("includes/websocket.server.php");
 require_once("wonders.php");
 require_once("player.php");
+require_once("robot.php");
 
 // Main server class
 class WonderServer implements IWebSocketServerObserver{
@@ -47,8 +48,12 @@ class WonderServer implements IWebSocketServerObserver{
             if (isset($this->users[$arr['id']])) {
                 $user = $this->users[$arr['id']];
             } else {
-                $user = new Player(gentoken(), $conn->getId());
-            }
+				if ( isset( $arr['robot'] ) && $arr['robot'] ){
+					$user = new Robot(gentoken(), $conn->getId());
+				} else {
+					$user = new Player(gentoken(), $conn->getId());
+				}
+            }                        
             $this->users[$user->id()] = $user;
             $this->conns[$conn->getId()] = $user;
             $user->setConnection($conn);

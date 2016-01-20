@@ -29,6 +29,9 @@ class Card {
     private $playFunc;
     private $freePrereq;
 
+	public $value;
+	public $possibilities;
+	
     static function csvNumPlayers($fields){
         // All guilds only have one copy and have a special way of being added
         // to the deck, so we don't deal with that here
@@ -156,7 +159,98 @@ class Card {
         preg_match('/\((.)\)\{(.)\} (.+)?/', $this->command, $matches);
         return intval($matches[1]);
     }
-
+	function getCoins( Player $user ){
+		if ( $this->color !== Card::YELLOW )
+			return 0;
+		if ($this->getAge() == 1) {
+			if (preg_match('/[0-9]/', $this->command)) {
+				 return intval($this->command);
+			}
+		} elseif($this->getAge() == 2) {
+			// check for yellow non-buyable resources
+			if(strpos($this->command, '/') !== false){
+				return 0;
+			} else {
+				$args = explode(' ', $this->command);
+				$directions = arrowsToDirection($args[0]);
+				$coins = 0;
+				$color = $args[1];
+				$mult = intval($args[2]);
+				foreach($directions as $dir){
+					$pl = $user->neighbor($dir);
+					foreach($pl->cardsPlayed as $c){
+						if($c->getColor() == $color)
+							$coins += $mult;
+					}
+				}
+				return $coins;
+			}
+		} elseif($this->getAge() == 3) {
+			$coins = $this->thirdAgeYellowCoins();
+			$color = $this->thirdAgeYellowColor();
+			// Be sure to count this yellow card for coin increase if
+			// we get coins per yellow card.
+			$coinsToGive = ($color == Card::YELLOW ? $coins : 0);
+			if ($color == 'wonder') {
+				$coinsToGive = $coins * $user->wonderStage;
+			} else {
+				foreach ($user->cardsPlayed as $card) {
+					if($card->getColor() == $color){
+						$coinsToGive += $coins;
+					}
+				}
+			}
+			if ($coinsToGive > 0)
+				return $coinsToGive;
+		}
+		return 0;
+	}
+	function getMilitary(Player $user, $age){
+		if ( $this->color !== Card::RED )
+			return 0;
+		$val = 0;
+		$val += $user->military->checkPoints(intval($this->command), $user->leftPlayer->military, $age);
+        $val += $user->military->checkPoints(intval($this->command), $user->rightPlayer->military, $age);
+		return $val;
+	}
+	function getResources(){
+		$resources = array();
+		switch($this->color){
+			case Card::YELLOW:
+                if($this->getAge() == 2) {
+                    // check for yellow non-buyable resources
+                    if(strpos($this->command, '/') !== false){
+                        $res = Card::csvResources($this->command, false);
+                        $resources[] = $res[0];
+                    }
+				}					
+                break;
+			case Card::BROWN: case Card::GREY:
+				foreach (Card::csvResources($this->command, true) as $r)
+					$resources[] = $r;
+				break;
+		}
+		return $resources;
+	}
+	function getDiscounts(){
+		$discounts = array ( 'left'=> array(), 'right'=> array() );
+		switch($this->color){
+            case Card::YELLOW:
+                if ($this->getAge() == 1) {
+                    if (preg_match('/[0-9]/', $this->command)) {
+                    } else {
+                        $args = explode(' ', $this->command);
+                        $directions = arrowsToDirection($args[0]);
+                        $resources = Card::csvResources($args[1], false);
+                        foreach ($resources as $resource)
+                            foreach ($directions as $dir)
+                                $discounts[$dir][] = $resource;
+                    }
+                } 
+                break;
+        }
+		return $discounts;
+	}
     function play(Player $user){
         switch($this->color){
             case Card::RED:
@@ -238,7 +332,7 @@ class Card {
         }
     }
 
-    public function points(Player $player) {
+    public function points(Player $player, $check = false, Card $card = null ) {
         switch($this->color){
             case Card::YELLOW:
                 if($this->age != 3) return 0;
@@ -295,7 +389,25 @@ class Card {
 
             case Card::BLUE:
                 return intval($this->command);
+				
+			case Card::GREEN:
+				if ( !$check ) return 0;
+				if ( $card && $card->getColor() == Card::GREEN ){
+					return $player->science->checkPoints(intval($this->command), intval($card->command));
+				} else {
+					return $player->science->checkPoints(intval($this->command));
 				}
+			case Card::RED:
+				if ( !$check ) return 0;
+				$val = 0;
+				$add = intval($this->command);
+				if ( $card && $card->getColor() == Card::RED ){
+					$add += intval($card->command);
+				}				
+				$val += $player->military->checkPoints($add, $player->leftPlayer->military, $this->age);
+				$val += $player->military->checkPoints($add, $player->rightPlayer->military, $this->age);
+				return $val;
+        }
 
         return 0;
     }
@@ -303,7 +415,10 @@ class Card {
     public function json() {
         return array(
             'name' => $this->getName(),
-            'color' => $this->getColor()
+            'color' => $this->getColor(),
+			'value' => $this->value['value'],
+			'info' => $this->value['info'],
+			'possibilities' => $this->possibilities
         );
     }
 }
@@ -322,7 +437,24 @@ class Deck {
             }
         }
     }
-
+	public function getLeftCards($age, $players){
+		$cards = array();
+		// current age;
+		foreach ($players as $player){
+			$cards = array_merge( $cards, $player->hand );
+		}
+		// other ages 
+		$numplayers = count($players);
+		if ( $age < 3 ){
+			$cards = array_merge( $cards, $this->guilds );
+			foreach ($this->cards as $card) {
+				if ($card->getNumPlayers() <= $numplayers and
+                    $card->getAge() == $age + 1)
+                $cards[] = $card;
+			}
+		}
+		return $cards;
+	}
     public function deal($age, $players){
         $numplayers = count($players);
         $playableCards = array();

@@ -31,28 +31,42 @@ class Resource {
     public function getAmts(){
         return $this->amts;
     }
-
+    public function setAll( $cnt = 1 ) {         
+        foreach( $this->amts as $name => $amts ){
+            $this->amts[$name] = $amts + $cnt;
+        }                
+    }
     public function add($resource) {
         $this->amts[$resource]++;
     }
-
-    public function json() {
+	public function json( $all = false ) {
         // Not enough information to rebuild this object, but we just care about
         // the name for display purposes (for now?)
+		$ret = array();
         foreach ($this->amts as $type => $amt) {
+			$str = "";
             if ($amt == 0)
                 continue;
             switch ($type) {
-                case self::STONE: return 'stone';
-                case self::WOOD:  return 'wood';
-                case self::ORE:   return 'ore';
-                case self::CLAY:  return 'clay';
-                case self::LINEN: return 'linen';
-                case self::GLASS: return 'glass';
-                case self::PAPER: return 'paper';
+                case self::STONE: $str = 'stone'; break;
+                case self::WOOD:  $str = 'wood';break;
+                case self::ORE:   $str = 'ore';break;
+                case self::CLAY:  $str = 'clay';break;
+                case self::LINEN: $str = 'linen';break;
+                case self::GLASS: $str = 'glass';break;
+                case self::PAPER: $str = 'paper';break;
             }
+			if ( !$all && !empty( $str ) ){
+				return $str;
+			} else {
+				for ( $i=0; $i<$amt; $i++)
+					$ret[] = $str;
+			}
         }
-        return '<unknown>';
+		if ( empty( $ret ))
+			return '<unknown>';
+		else 
+			return $ret;
     }
 
     public function discount($discounts) {
@@ -67,7 +81,17 @@ class Resource {
                     return 1;
         return 2;
     }
-
+    public static function cumul( $resources ) {
+        $total = array(self::STONE => 0, self::WOOD => 0, self::ORE => 0,
+                       self::CLAY => 0, self::LINEN => 0, self::GLASS => 0,
+                       self::PAPER => 0);
+        foreach ($resources as $resource) {
+            foreach ($resource->amts as $res => $amt) {
+                $total[$res] += $amt;
+            }
+        }
+        return $total;
+    }
     public static function satisfy($want, $have, $maxcost) {
         $total = array(self::STONE => 0, self::WOOD => 0, self::ORE => 0,
                        self::CLAY => 0, self::LINEN => 0, self::GLASS => 0,
@@ -229,7 +253,19 @@ class Science {
     public function add($science) {
         $this->amts[$science]++;
     }
-
+	public function checkPoints($science, $science2 = null) {
+		$base = $this->points();
+		if ( $science2 !== null ){
+			$this->amts[$science2]++;
+		}
+		$this->amts[$science]++;
+		$points = $this->points() - $base;
+		$this->amts[$science]--;
+		if ( $science2 !== null ){
+			$this->amts[$science2]--;
+		}
+		return $points;
+	}
     public function points() {
         // Maximize point value of wildcards
         if ($this->amts[self::ANY] > 0) {
@@ -275,7 +311,30 @@ class Military {
         }
         return $sum;
     }
-
+	public function checkPoints($val, $other, $age) {
+		$amt = $this->amt;
+		if ($other->_size > $this->_size) {
+            $amt[-1]++;
+        } else if ($other->_size < $this->_size) {
+            $amt[2 * $age - 1]++;
+        }
+		$current = 0;
+        foreach ($amt as $mult => $a) {
+            $current += $mult * $a;
+        }
+		
+		$amt = $this->amt;
+		if ($other->_size > $this->_size+$val) {
+            $amt[-1]++;
+        } else if ($other->_size < $this->_size+$val) {
+            $amt[2 * $age - 1]++;
+        }
+		$next = 0;
+		foreach ($amt as $mult => $a) {
+            $next += $mult * $a;
+        }
+		return $next - $current;
+	}
     public function add($amt) { $this->_size += $amt; }
     public function json() { return $this->amt; }
     public function size() { return $this->_size; }

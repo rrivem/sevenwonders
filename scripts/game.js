@@ -19,8 +19,9 @@ var SevenWonders = function(socket, args){
     this.scale = 1;
     this.gameDiv = $('#game');
 
+	this.robot = args.robot;
     var self = this;
-
+    
     // size game div acccording to browser size
     $("#game").css({width: Math.max($(window).width(), 1420), height: Math.max($(window).height(), 730)});
 
@@ -68,12 +69,46 @@ var SevenWonders = function(socket, args){
    
     // select wonder image here (load in appropriately)
     if(typeof args.wonder.resource == 'undefined'){ // hacky way of checking if player refreshed in middle of wonder picking
-        $('#setup-container').fadeIn(1000);
-        $('#setup p strong').html(this.wonder.name.capitalize());
-        var imgname = "images/wonders/" + this.wonder.name.toLowerCase();
-        $('#setup').append('<img src="' + imgname + 'A.png" /><img src="' + imgname + 'B.png" />')
-        $('#setup img').click(function(){
-            var isA = $(this).attr('src').indexOf('A') > -1;
+        if ( !self.robot ) {
+            $('#setup-container').fadeIn(1000);
+            $('#setup p strong').html(this.wonder.name.capitalize());
+            var imgname = "images/wonders/" + this.wonder.name.toLowerCase();
+            $('#setup').append('<img src="' + imgname + 'A.png" /><img src="' + imgname + 'B.png" />')
+            $('#setup img').click(function(){
+                var isA = $(this).attr('src').indexOf('A') > -1;
+                self.wonder = new WonderBoard({
+                    name: args.wonder.name,
+                    coins: parseInt(args.coins),
+                    military: args.military,
+                    wonderside: isA ? 'a' : 'b',
+                    stage: 0,
+                    game: self
+                });
+                $('#game').append(self.wonder.wonderDiv);
+
+                self.send(isA, 'wonderside');
+                $('#setup img').unbind('click');
+                $('#setup-container').fadeOut(200, function(){
+                    $(this).css('display', 'none');
+                    // show waiting screen for until hand pops up
+                })
+            });
+        } else {
+            var isA = 1;
+            switch ( this.wonder.name ){
+                case "babylon":
+                    isA = 1;
+                    break;
+                case "halikarnassus":
+                    isA = 1;
+                    break;
+                case "olympia":
+                    isA = 0;
+                    break;
+                default:
+                    isA = Math.random() > 0.5;
+                    break;                
+            }
             self.wonder = new WonderBoard({
                 name: args.wonder.name,
                 coins: parseInt(args.coins),
@@ -85,12 +120,11 @@ var SevenWonders = function(socket, args){
             $('#game').append(self.wonder.wonderDiv);
 
             self.send(isA, 'wonderside');
-            $('#setup img').unbind('click');
             $('#setup-container').fadeOut(200, function(){
                 $(this).css('display', 'none');
                 // show waiting screen for until hand pops up
             })
-        });
+        }
     }
 
     // Puts cards back in their place if player is rejoining the game (e.g. refreshing)
@@ -496,22 +530,102 @@ SevenWonders.prototype = {
     showPlayerInfo: function(id){
         this.send(id, 'playerinfo');
     },
+    showSelectCard: function ( $target ) {
+        // Lower opacity on non-selected cards
+        $('.card:not(.ignore, #' + $target.attr('id') + ')').animate({ opacity: 0.1 }, 200);
+        $target.addClass('selected');
+        $target.animate({
+            width: self.cardWidth + 50,
+            height: self.cardHeight + 76.5,
+            left: '-=25px',
+            bottom: '-=38px',
+            opacity: 1,
+            rotate: 0
+        }, 200, function(){
+            $target.find('.options').fadeIn(200);
+            $target.css('z-index', 2);
 
+            // Show the slider if they closed out and came back in between buying
+            var slider = $target.find('.slider');
+            if(slider.height() > 0){
+                slider.css({height: 0, display: 'block'});
+                slider.animate({height: 65}, 200);
+            }
+        });  
+    },
+    findCombos: function( combs ){
+        // Figure out the minimum cost
+        var minCost = 100;
+        for (var i in combs) {
+            var combo = combs[i];
+            var cost = 0;
+            if (typeof combo.left !== 'undefined')
+                cost = combo.left + combo.right;
+            if(cost < minCost) minCost = cost;
+        }
+
+        // Filter args.combs based on cost and then sort the list
+        var combos = [];
+        for(var i in combs){
+            var combo = combs[i];
+            var cost = combo.left + combo.right;
+            if(cost <= minCost + 1){
+                combos.push(combo);
+            }
+            combo.index = i;
+        }
+        // Sort the combinations with least $ for left first
+        combos.sort( function(a, b){ return a.left < b.left; } );
+        return { combos: combos, minCost: minCost };
+    },
+    robotSelectCard: function( div, action, possibilities ){
+        var self = this;
+        var when = Math.floor( 2000 + Math.random()*1000 );
+        window.setTimeout( function () {  
+            // if this is nto here, chrome do not fire the other timeout ???
+        }, 10 );
+        window.setTimeout( function () {    
+            var index;
+            self.showSelectCard( div );
+            div.data('state', action);
+            if ( action !== "trashing" ){
+                var c = self.findCombos( possibilities );
+                var index = c.minCost>0 ? c.combos[0].index : 0;                      
+            } else {
+                index = 0;
+            }
+            self.chooseCard(div, index);
+        }, when);
+    },
     // handle all the different messages sent from the server
     onMessage: function(args, msg){
         switch(args.messageType){
             // we're dealt a new hand
             case 'hand':
                 args.cards = $.map(args.cards || {}, function(k,v){ return [k]; });
-
+                if ( this.robot ){
+                    $(".robotinfo").remove();                              
+                    var selectedCard = args.selected;
+                    var txt = args.action === 'play' ? selectedCard : args.action;
+                    $(".wonderBoard").append('<div class="robotinfo" style="margin-top: 35px; text-align: right; color: white;">'+Math.floor(args.wonder.value*10)/10+'</div>');
+                    $(".wonderBoard").append('<div class="robotinfo" style="margin-top: 5px; text-align: right; color: white;">'+txt+'</div>');                    
+                }
+                
                 this.cleanHand();
-                var self = this;
-
-                // Insert new hand into the board
+                var self = this;			
+				
+				// Insert new hand into the board
                 var count = args.cards.length;
                 for(i in args.cards){
-                    var card = args.cards[i];
+                    var card = args.cards[i];                    
                     var div = this.cardDiv(count, card);
+                    
+                    if ( this.robot ){
+                        div.append("<div class='robotinfo' style='margin-top: 200px;margin-left: 50px;'>" + Math.floor(card.value*10)/10 + "</div>");
+                        if ( args.selected === card.name ){                          
+                            this.robotSelectCard( div, args.action, args.action === 'play' ? card.possibilities : args.wonder.possibilities );                            
+                        }
+                    }
                     $('#game').append(div);
                     count--;
                 }
@@ -561,27 +675,7 @@ SevenWonders.prototype = {
                         var selected = $('.card.selected');
                         self.shrinkCard(selected);
 
-                        // Lower opacity on non-selected cards
-                        $('.card:not(.ignore, #' + $(this).attr('id') + ')').animate({ opacity: 0.1 }, 200);
-                        $(this).addClass('selected');
-                        $(this).animate({
-                            width: self.cardWidth + 50,
-                            height: self.cardHeight + 76.5,
-                            left: '-=25px',
-                            bottom: '-=38px',
-                            opacity: 1,
-                            rotate: 0
-                        }, 200, function(){
-                            $(this).find('.options').fadeIn(200);
-                            $(this).css('z-index', 2);
-
-                            // Show the slider if they closed out and came back in between buying
-                            var slider = $(this).find('.slider');
-                            if(slider.height() > 0){
-                                slider.css({height: 0, display: 'block'});
-                                slider.animate({height: 65}, 200);
-                            }
-                        });
+                        self.showSelectCard( $(this) );                        
                     }
                 });
 
@@ -611,11 +705,11 @@ SevenWonders.prototype = {
             case 'possibilities':
                 var card = $('.card.selected');
                 var showfree = this.hasfree && card.data('state') != 'building';
-
+				
                 // If this is impossible to play, throw up a message saying so
                 // and don't allow a click to play it.
                 if (!args.combs[0] && !showfree) {
-                    card.append('<div class="overlay"><h2>Error</h2>You cannot complete that action</div>');
+					card.append('<div class="overlay"><h2>Error</h2>You cannot complete that action</div>');
                     card.find('.overlay').animate({ opacity: '0.9' }, 200);
                     card.find('img').animate({opacity: '0.3'}, 200);
                     var removeErr = function(card){
@@ -629,36 +723,16 @@ SevenWonders.prototype = {
                     return;
                 }
 
-                // Figure out the minimum cost
-                var minCost = 100;
-                for (var i in args.combs) {
-                    var combo = args.combs[i];
-                    var cost = 0;
-                    if (typeof combo.left != 'undefined')
-                        cost = combo.left + combo.right;
-                    if(cost < minCost) minCost = cost;
-                }
-
-                // If it's a free card, then we just chose it
+                var c = this.findCombos( args.combs );
+                var combos = c.combos;
+                var minCost = c.minCost;
+								
+				// If it's a free card, then we just chose it
                 if (minCost == 0) {
                     this.chooseCard(card, 0);
                     return;
                 }
-
-                // Filter args.combs based on cost and then sort the list
-                var combos = [];
-                for(var i in args.combs){
-                    var combo = args.combs[i];
-                    var cost = combo.left + combo.right;
-                    if(cost <= minCost + 1){
-                        combos.push(combo);
-                    }
-                    combo.index = i;
-                }
-
-                // Sort the combinations with least $ for left first
-                combos.sort(function(a, b){ return a.left < b.left });
-
+				
                 // find the first element in the array with the minimum cost
                 // this'll be the default combo displayed on the slider
                 var firstMin = 0;
@@ -743,7 +817,7 @@ SevenWonders.prototype = {
                 if($('.card.selected').length){
 
                 }   else {
-                    alert(args.data)
+                    console.log(args.data)
                 }
                 break;
 
@@ -805,6 +879,10 @@ SevenWonders.prototype = {
                         else tr.append('<td>' + args[pl.id][field] + '</td>');
                     }
                     $('#scores').append(tr);
+                }
+                if ( this.robot ){
+                    // reload the page after 2s
+                    setTimeout( function(){ location.reload(); }, 2000);                     
                 }
                 break;
 
