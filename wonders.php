@@ -213,7 +213,7 @@ class SevenWonders {
         }
 
         foreach($this->players as $player){
-            $points = array_sum($player->calcPoints());
+            $points = $player->calcPoints()['total'];
             $this->log("{$player->info()} has $points points");
         }
     }
@@ -258,32 +258,39 @@ class SevenWonders {
                 }
 
                 if (isset($user->state) &&
-                    ($this->turn != 6 ||
-                     !$user->canPlayTwo() ||
-                     isset($user->secondState)))
+                    ($this->turn != 6 || !$user->canPlayTwo() || isset($user->secondState)))
+                {
+                    $this->log("{$user->info()} Skip - ".print_r($user->state, true));
                     break;
+                }
 
                 $cardName = $args['value'][0];
                 // match what they sent with a Card object
                 foreach ($user->hand as $card)
                     if($card->getName() == $cardName)
                         $foundCard = $card;
-                if (!isset($foundCard)) // don't have the specified card
+                if (!isset($foundCard)){ // don't have the specified card
+                    $this->log("{$user->info()} $cardName not found");
                     break;
+                }
 
                 $cost = array();
                 $state = '';
                 if ($args['value'][1] == 'trash') {
                     $state = Player::TRASHING;
                 } else if ($args['value'][1] == 'free') {
-                    if (!$user->hasFreeCard)
+                    if (!$user->hasFreeCard){
+                        $this->log("{$user->info()} no free card");
                         break;
+                    }
                     $state = Player::USINGFREE;
                 } else {
                     $cost = $user->cardCost($foundCard, $args['value'][2],
                                             $args['value'][1]);
-                    if ($cost === false)
+                    if ($cost === false){
+                        $this->log("{$user->info()} cost not found");
                         break;
+                    }
                     if ($args['value'][1] == 'wonder')
                         $state = Player::BUILDING;
                     else
