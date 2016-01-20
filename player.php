@@ -154,7 +154,7 @@ class Player {
         $this->send('military', $this->military->json());
     }
 
-    public function calcPoints(){
+    public function calcPoints( $countCards = false ){
         $points = array(
             'coins' => floor($this->coins / 3),
             'wonder' => 0,
@@ -167,9 +167,18 @@ class Player {
             Card::GREY => 0,
             'total' => 0
         );
-
+        $cards = array(
+            Card::BLUE => 0,
+            Card::GREEN => 0,
+            Card::RED => 0,
+            Card::YELLOW => 0,
+            Card::PURPLE => 0,
+            Card::BROWN => 0,
+            Card::GREY => 0
+        );
         foreach($this->cardsPlayed as $card){
             $points[$card->getColor()] += $card->points($this);
+            $cards[$card->getColor()]++;
         }
 
         for($i = 0; $i < $this->wonderStage; $i++){
@@ -194,7 +203,10 @@ class Player {
         }
 
         $points['total'] = array_sum($points);
-
+        if ( $countCards ){
+            $points[Card::BROWN] = $cards[Card::BROWN];
+            $points[Card::GREY] = $cards[Card::GREY];
+        }
         return $points;
     }
 

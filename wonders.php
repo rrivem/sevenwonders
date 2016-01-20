@@ -213,12 +213,13 @@ class SevenWonders {
         }
 
         foreach($this->players as $player){
-            $points = $player->calcPoints()['total'];
+            $points = array_sum($player->calcPoints())/2;
             $this->log("{$player->info()} has $points points");
         }
     }
 
     public function onMessage(Player $user, $args){
+        //print_r( $args );
         switch($args['messageType']){
             case 'cardignore':
                 $card = $args['card'];
@@ -396,12 +397,52 @@ class SevenWonders {
 
     private function endGame(){
         $scores = array();
+        
+        $data = array();      
+        if ( !file_exists("stats/robot_info.csv")  ){
+            $str = "players,wonder_side,";
+            $player = $this->players[0];
+            $points = $player->calcPoints( true );
+            $str .= implode(",", array_keys($points)) . ",";
+            $weights = $player->getCostWeights();
+            $str .= implode(",", array_keys($weights));
+            $data[] = $str;
+        } 
+        
+        $winners = array();
         foreach($this->players as $player){
-            $scores[$player->id()] = $player->calcPoints();
+            $points = $player->calcPoints( true );
+            $scores[$player->id()] = $points;
+            if ( $player->isRobot() ){
+                $weights = $player->getCostWeights( );
+                $info = $player->getPublicInfo();                        
+                $str = "";
+                $str .= count( $this->players ).",";
+                $str .= $info['wonder']["name"]."_".$info['wonder']["side"].",";
+                $str .= implode(", ", $points) .",";
+                $str .= implode(", ", $weights);                       
+
+                $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];
+                $data[] = $str;
+            }
             $player->quitGame();
+            
+        }
+        asort( $winners );
+        $str = "";
+        foreach($winners as $name => $score ){            
+            $str .= "," .$name;
+        } 
+        for ( $i=0; $i<count($data); $i++ ) {
+            $data[$i] .= $str;
+        }
+        if ( count($data) ) {
+            mkdir("stats");
+            file_put_contents("stats/robot_info.csv", implode("\n", $data) ."\n", FILE_APPEND);
         }
         $this->server->broadcast('scores', $scores);
     }
+    
 }
 
 ?>
