@@ -606,7 +606,7 @@ SevenWonders.prototype = {
                 if ( this.robot ){
                     $(".robotinfo").remove();                              
                     var selectedCard = args.selected;
-                    var txt = args.action === 'play' ? selectedCard : args.action;
+                    var txt = args.action === 'buying' ? selectedCard : args.action;
                     $(".wonderBoard").append('<div class="robotinfo" style="margin-top: 35px; text-align: right; color: white;">'+Math.floor(args.wonder.value*10)/10+'</div>');
                     $(".wonderBoard").append('<div class="robotinfo" style="margin-top: 5px; text-align: right; color: white;">'+txt+'</div>');                    
                 }
@@ -623,7 +623,7 @@ SevenWonders.prototype = {
                     if ( this.robot ){
                         div.append("<div class='robotinfo' style='margin-top: 200px;margin-left: 50px;'>" + Math.floor(card.value*10)/10 + "</div>");
                         if ( args.selected === card.name ){                          
-                            this.robotSelectCard( div, args.action, args.action === 'play' ? card.possibilities : args.wonder.possibilities );                            
+                            this.robotSelectCard( div, args.action, args.action === 'buying' ? card.possibilities : args.wonder.possibilities );                            
                         }
                     }
                     $('#game').append(div);
