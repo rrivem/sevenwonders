@@ -4,12 +4,14 @@ require_once('player.php');
 
 class Robot extends Player{
     
-    protected $isRobot = false;
+    
+    protected $serverOnly = false;
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
-    public function __construct($id, $unique) {
+    public function __construct($id, $unique, $serverOnly = false) {
         $this->_name = "Robot $unique";
         $this->_id = $id;
+        $this->serverOnly = $serverOnly;
     }
     public function getCostWeights() {
         return $this->costWeights;
@@ -31,6 +33,12 @@ class Robot extends Player{
     }
     public function isRobot() {
         return true;
+    }
+    public function send($type, $msg) {
+        if ( $this->serverOnly ){
+            return;
+        }
+        return parent::send($type, $msg);
     }
     public function getPublicInfo(){
         return array(
@@ -59,7 +67,8 @@ class Robot extends Player{
 			
             $action = "";
 			$max = 0;
-			$best = "discard";
+            $index = 0;
+			$best = "";
             $names = array();
 			foreach ( $this->hand as $card ){
                 $names[] = $card->getName();
@@ -71,8 +80,9 @@ class Robot extends Player{
 				$card->value = $this->getCardValue($card, $type, $card->possibilities);			
 				if ( $card->value['value'] > $max ){
 					$max = $card->value['value'];
+                    $index = $card->value['index'];
 					$best = $card->getName();
-                    $action = "play";
+                    $action = "buying";
 				}                
 			}
 			$type = 'wonder';
@@ -81,25 +91,61 @@ class Robot extends Player{
 			$wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
 			if ( $wonderValue['value'] > $max ){
 				$max = $wonderValue['value'];
+                $index = $wonderValue['index'];
 				$action = "building";
 			}
             if ( $max <= 0.2 ){
                 $action = "trashing";
+                $index = 0;
             }
-            if ( $action !== "play" ){
+            if ( $action !== "buying" ){
                 $best = $names[rand(0, count($names)-1 )];
             }
             $info = array_map(function($c) { return $c->json(); }, $this->hand);
-            $this->send('hand',
-                       array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $wonderValue  ));
+            if ( $this->serverOnly ){
+                // we know wat teh client would choose, let's do so
+                $actionMap = array( "trashing"=>"trash", "building"=>"wonder", "buying"=>"play");
+                $args = array(
+                    'messageType' => 'cardplay',
+                    'value' => array( $best,  $actionMap[$action], $index  )
+                );
+                $this->game()->onMessage($this, $args);
+            } else {
+                $this->send('hand',
+                           array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $wonderValue, 'index' => $index  ));
+            }
         }
     }
-
+    public function sendStartInfo($isRejoin = false) {
+        if ( $this->serverOnly ){
+            switch ( $this->wonderName ){
+                case "babylon":
+                   $isA = true;
+                    break;
+                case "halikarnassus":
+                    $isA = false;
+                    break;
+                case "olympia":
+                    $isA = false;
+                    break;
+                default:
+                    $isA = rand(0, 1) == 0;
+                    break;                
+            }
+            $args = array(
+                    'messageType' => 'wonderside',
+                    'value' => $isA
+                );
+            $this->game()->onMessage($this, $args);            
+            return;
+        }
+        return parent::sendStartInfo( $isRejoin );
+    }
     public function getCardValue(Card $card, $type, $possibilities){
 		$pos = array();
 		// what can we do with this card ?
 		if ( count( $possibilities) == 0 ) {
-			return array ('value' => -1, 'info' => null );
+			return array ('value' => -1, 'info' => null, 'index' => 0 );
 		}
 		if ( $type == 'play' ) {			
 			$info = array();
@@ -152,11 +198,12 @@ class Robot extends Player{
                     $values['wonder'] += $wonder; 
                 }
 			}
-            $points -= $this->minCost($possibilities)/3 * $this->costWeights['cost'];
+            $minCost = $this->minCostExt($possibilities);
+            $points -= $minCost[0]/3 * $this->costWeights['cost'];
             $values['cost'] = $this->minCost($possibilities)/3;
             
-			$pos['value'] = $points;
-            
+            $pos['index'] = $minCost[1];
+			$pos['value'] = $points;        
 			$pos['info'] = $info;
             
 		} else {
@@ -174,6 +221,7 @@ class Robot extends Player{
             } else {
                 $pos['value'] = $value / 6 ;
             } 
+            $pos['index'] = 0;
             $pos['value'] *= $this->costWeights['build'];
 			$pos['info'] = null;
         }
@@ -189,9 +237,10 @@ class Robot extends Player{
         // Send off everything we just found
         $this->send('possibilities', $pos);
     }
-    private function minCost( $possibilities ) {
+    private function minCostExt( $possibilities ) {
         $min = 100;
-        foreach ( $possibilities as $possibility ){
+        $index = 0;
+        foreach ( $possibilities as $i => $possibility ){
             $cost = 0;
             if ( isset( $possibility['left'] )){
                 $cost += $possibility['left'];
@@ -201,9 +250,13 @@ class Robot extends Player{
             }
             if ( $cost < $min ){
                 $min = $cost;
+                $index = $i;
             }
         }
-        return $min;
+        return array( $min, $index );
+    }
+    private function minCost( $possibilities ) {
+        return $this->minCostExt( $possibilities )[0];
     }
 	private function checkWonderCost(Card $card) {
 		$result = array( 0, 0, 0, 0 );

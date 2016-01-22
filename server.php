@@ -103,9 +103,20 @@ class WonderServer implements IWebSocketServerObserver{
                 $game->id = gentoken();
                 $game->server = $this;
                 $game->addPlayer($user);
-
+                
+                
                 $this->games[$game->id] = $game;
-
+                
+                $nbRobots = intval($arr['robots']);
+                if ( $nbRobots > $game->maxplayers -1 ){
+                    $nbRobots = $game->maxplayers - 1;
+                }
+                for ( $r=0; $r<$nbRobots; $r++ ){
+                    $user = new Robot(gentoken(), $r, true);
+                    $game->addPlayer($user);
+                }
+                $game->maxplayers -= $nbRobots;
+                
                 if ($game->maxplayers > 1)
                     $this->broadcast('newgame',
                                      array('name' => $game->name,

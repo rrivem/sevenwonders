@@ -114,7 +114,9 @@
                 if ( getParameterByName( "autostart" ) ){
                     setTimeout(function() {
                         var opts = { name: "auto",
-                                     players: getParameterByName( "players" ) || 3 };
+                                     players: getParameterByName( "players" ) || 3,
+                                     robots: getParameterByName( "players" ) || 3
+                        };
                         send(opts, "newgame");
                         waitScreen();
                     }, 2000 );
@@ -141,6 +143,9 @@
                 $('input[name=players]').change(function(){
                     $('#numplayers').html($(this).attr('value'));
                 });
+                $('input[name=robots]').change(function(){
+                    $('#numrobots').html($(this).attr('value'));
+                });
             });
 
             window.newGame = function(form){
@@ -149,7 +154,9 @@
                     return false;
                 }
                 var opts = { name: form.game_name.value,
-                             players: form.players.value };
+                             players: form.players.value,
+                             robots: form.robots.value
+                };
                 send(opts, "newgame");
                 waitScreen();
 
@@ -204,7 +211,7 @@
                         <table>
                             <tr>
                                 <td>Game Name:</td>
-                                <td><input type="text" name="game_name" /></td>
+                                <td><input type="text" name="game_name" value="game"/></td>
                             </tr>
                             <tr>
                                 <td># Players:</td>
@@ -212,6 +219,14 @@
                                     <input type='range' name='players' min='3'
                                            max='7' value='3' />
                                     <span id='numplayers'>3</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td># Robots</td>
+                                <td>
+                                    <input type='range' name='robots' min='0'
+                                           max='7' value='2' />
+                                    <span id='numrobots'>2</span>
                                 </td>
                             </tr>
                             <tr>

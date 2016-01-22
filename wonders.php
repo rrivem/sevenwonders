@@ -85,7 +85,7 @@ class SevenWonders {
             // select a wonder
             $wonder = $this->wonders[array_pop($wonderKeys)];
             if ( $player->isRobot() && $wonder['name'] == "halikarnassus" ){
-                // robots don't play this wonder
+                // robots don't play this wonder        
                 $wonder = $this->wonders[array_pop($wonderKeys)];
             }
             $player->wonderName = $wonder['name'];
@@ -337,7 +337,7 @@ class SevenWonders {
                         break;
                     }
                 }
-
+                $this->log("{$user->info()} has chosen $user->wonderName $side");
                 $allChosen = true;
                 foreach($this->players as $player){
                     if(!isset($player->wonder)){
