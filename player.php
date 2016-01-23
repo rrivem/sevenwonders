@@ -48,9 +48,13 @@ class Player {
 
     // Figuring out card costs
     protected $possibilities;
+    
+    public $victories = array( 0, 0, 0, 0, 0, 0, 0);
+    public $totalScore = 0;
+    
     public function __construct($id, $unique) {
         $this->_name = "Guest $unique";
-        $this->_id = $id;
+        $this->_id = $id;        
     }
 
     public function id() {

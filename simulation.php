@@ -19,25 +19,35 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $game;
-    public $nbSimul = 2;
+    public $nbSimul = 1000;
     public $nbPlayers = 3;
-    public $dataFilename = "game_info.csv";
     
-
+    public $simulationType = "herd";
+    public $herdSize = 100;
+    
+    public $dataFilename = "game_info";
+    public $statsFilename = "game_stats";
+    
+    protected $game;
+    protected $herd;
+    protected $wonderStats;
+    
     public function broadcast( $type, $msg, $exclude=null ){     
-        echo $type;
+        echo $type ."\n";
         if ( $type === 'scores' ){
             // end of the game  
             
             $scores = array();
-            if ( !file_exists("stats/$this->dataFilename")  ){
-                $str = "players,wonder_side,";
+            $filename = "stats/".$this->dataFilename . count( $this->game->players ) .".csv";
+            if ( !file_exists($filename)  ){
+                $str = "name,wonder_side,";
                 $player = $this->game->players[0];
                 $points = $player->calcPoints( true );
                 $str .= implode(",", array_keys($points)) . ",";
                 $weights = $player->getCostWeights();
-                $str .= implode(",", array_keys($weights));
+                $str .= implode(",", array_keys($weights)). ",";                
+                $str .= implode(",", array_keys($player->victories)). ",";
+                $str .= "totalScore";
                 $data[] = $str;
             } 
 
@@ -48,45 +58,99 @@ class Simulation {
                 
                 $weights = $player->getCostWeights( );
                 $info = $player->getPublicInfo();                        
-                $str = "";
-                $str .= count( $this->game->players ).",";
+                $str = "";            
+                $str .= $player->name().",";
                 $str .= $info['wonder']["name"]."_".$info['wonder']["side"].",";
-                $str .= implode(", ", $points) .",";
-                $str .= implode(", ", $weights);                       
-
+                $str .= implode(",", $points) .",";
+                $str .= implode(",", $weights).",";              
+                $str .= implode(",", $player->victories).","; 
+                $str .= $player->totalScore; 
                 $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];
-                $data[] = $str;
-                
+                $data[] = $str;                           
             }
             asort( $winners );
             $str = "";
+            $pos = 0;
             foreach($winners as $name => $score ){            
                 $str .= "," .$name;
+                if ( !isset($this->wonderStats[$name])){
+                    $this->wonderStats[$name] = array( 0, 0, 0, 0, 0, 0, 0);
+                }
+                $this->wonderStats[$name][$pos]++;
+                $pos++;
             } 
             for ( $i=0; $i<count($data); $i++ ) {
                 $data[$i] .= $str;
             }
-            print_r($data);
             if ( count($data) ) {
-                file_put_contents("stats/$this->dataFilename", implode("\n", $data) ."\n", FILE_APPEND);
+                file_put_contents($filename, implode("\n", $data) ."\n", FILE_APPEND);
             }
+            
+            echo $this->dumpStats( );
         }
         
     }
-    public function start( ){
-        while ( $this->nbSimul-- ){
-            $this->startGame(  );
+    public function dumpStats( ){
+        
+        $stats = "";
+        $stats .="name,           ,win,2nd,3rd,4th,5th,6th,7th,tot\n";
+        foreach($this->wonderStats as $name => $scores ){
+            $totalPlay = array_sum( $scores );
+            $stats .= sprintf("%-15s",$name.",");
+            foreach($scores as $score ){
+                $stats .= sprintf(",%3d", round($score/$totalPlay*100));
+            }
+            $stats .= ",$totalPlay\n";
         }
+        if ( count( $this->herd ) >0 ){
+            $stats .= "\n";        
+            $stats .="name,           ,win,2nd,3rd,4th,5th,6th,7th,score,".implode(",", array_keys($this->herd[0]->getCostWeights( ))).",tot\n";
+        }
+        foreach($this->herd as $player ){
+            $totalPlay = array_sum( $player->victories );
+            if ( $totalPlay == 0 ){
+                continue;
+            }
+            $stats .= sprintf("%-15s",$player->name().",");
+            
+            foreach($player->victories as $victory ){
+                $stats .= sprintf(",%3d", round($victory/$totalPlay*100));
+            }
+            $stats .= sprintf(",%3d ",$player->totalScore/$totalPlay);
+            $stats .= ",".implode(", ", $player->getCostWeights( ));
+            $stats .= ",$totalPlay\n";
+        }
+        return $stats;
     }
-    public function startGame( ){
+    public function start( ){
+        if ( $this->simulationType === "herd" ){
+            for ( $i=0; $i<$this->herdSize; $i++){
+                $this->herd[] = new Robot(gentoken(), $i, true);
+            }
+        }
+        $idx = 0;
+        while ( $this->nbSimul-- ){
+            $this->startGame( $idx++ );
+        }
+        $filename = "stats/".$this->statsFilename . count( $this->game->players ) .".csv";
+        file_put_contents($filename, $this->dumpStats( ));
+    }
+    public function startGame( $gameIdx ){
         $this->game = new SevenWonders();
+        $this->game->debug = false;
         $this->game->maxplayers = $this->nbPlayers;
         $this->game->name = "simulation";
         $this->game->id = gentoken();
         $this->game->server = $this;
-        
+        if ( $this->simulationType === "herd" ){
+            shuffle($this->herd);
+        }
         for ( $r=0; $r<$this->game->maxplayers; $r++ ){
-            $user = new Robot(gentoken(), $r, true);
+            if ( $this->simulationType === "random" ){
+                $user = new Robot(gentoken(), $gameIdx."_".$r, true);
+            } else  if ( $this->simulationType === "herd" ){                      
+                $user = $this->herd[$r];
+            }
             $this->game->addPlayer($user);
         }
     } 

@@ -398,11 +398,20 @@ class SevenWonders {
     private function endGame(){
         $scores = array();
                 
-        foreach($this->players as $player){
+        $winners = array();
+        foreach($this->players as $idx => $player){
             $points = $player->calcPoints( );
             $scores[$player->id()] = $points;            
-            $player->quitGame();
+            $winners[$idx] = $points['total'];
+            $player->quitGame();            
         }        
+        asort( $winners );
+        $pos = 0;
+        foreach($winners as $idx => $score ){
+            $this->players[$idx]->victories[$pos]++;
+            $this->players[$idx]->totalScore += $score;
+            $pos++;
+        } 
         $this->server->broadcast('scores', $scores);
     }
     
