@@ -66,6 +66,7 @@ class SevenWonders {
         $this->players[] = $user;
         $user->setGame($this);
 
+        echo ( count($this->players) ." ?= " . $this->maxplayers ."\n");
         if (count($this->players) == $this->maxplayers)
             $this->startGame();
     }
@@ -179,7 +180,10 @@ class SevenWonders {
             if ($this->turn == 6 && count($player->hand) > 0)
                 $this->discard[] = array_pop($player->hand);
         }
-
+        foreach($this->players as $player){
+            $points = $player->calcPoints()['total'];
+            $this->log("{$player->info()} has $points points");
+        }
         if(!$shouldPause){
              if ($this->turn == 6) {
                 // go into a new age
@@ -212,10 +216,7 @@ class SevenWonders {
                 $player->send('hand', array('card' => array()));
         }
 
-        foreach($this->players as $player){
-            $points = array_sum($player->calcPoints())/2;
-            $this->log("{$player->info()} has $points points");
-        }
+        
     }
 
     public function onMessage(Player $user, $args){
@@ -437,7 +438,8 @@ class SevenWonders {
             $data[$i] .= $str;
         }
         if ( count($data) ) {
-            mkdir("stats");
+            if ( !file_exists("stats"))
+                mkdir("stats");
             file_put_contents("stats/robot_info.csv", implode("\n", $data) ."\n", FILE_APPEND);
         }
         $this->server->broadcast('scores', $scores);
