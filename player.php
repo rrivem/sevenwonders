@@ -167,7 +167,7 @@ class Player {
             Card::GREY => 0,
             'total' => 0
         );
-        $cards = array(
+        $cardsCount = array(
             Card::BLUE => 0,
             Card::GREEN => 0,
             Card::RED => 0,
@@ -178,7 +178,7 @@ class Player {
         );
         foreach($this->cardsPlayed as $card){
             $points[$card->getColor()] += $card->points($this);
-            $cards[$card->getColor()]++;
+            $cardsCount[$card->getColor()]++;
         }
 
         for($i = 0; $i < $this->wonderStage; $i++){
@@ -204,8 +204,8 @@ class Player {
 
         $points['total'] = array_sum($points);
         if ( $countCards ){
-            $points[Card::BROWN] = $cards[Card::BROWN];
-            $points[Card::GREY] = $cards[Card::GREY];
+            $points[Card::BROWN] = $cardsCount[Card::BROWN];
+            $points[Card::GREY] = $cardsCount[Card::GREY];
         }
         return $points;
     }
