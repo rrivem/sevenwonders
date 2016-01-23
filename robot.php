@@ -210,16 +210,28 @@ class Robot extends Player{
 			$pos['info'] = $info;
             
 		} else {
-            $value = ($this->wonderStage+1)*2+1;
+            if ( count($this->wonder['stages']) == 4) {
+                $vals = [ 3, 5, 5, 7, 0 ];
+                $targts = [ 1, 2, 2, 3, 4 ];
+                $value = $vals[$this->wonderStage];
+                $targetAge = $targts[$this->wonderStage];
+            } else {
+                if ( $this->wonderStage < 3 ){
+                    $value = ($this->wonderStage+1)*2+1;
+                } else {
+                    $value = 0;
+                }
+                $targetAge = $this->wonderStage+1;
+            }
             $cardLeft = count($this->hand) / 2;
             
-            if ( $this->wonderStage < $card->getAge() - 1 ){
+            if ( $targetAge < $card->getAge() ){
                 if ( $cardLeft > 1 ){
                     $pos['value'] = $value + ($value+2)/($cardLeft-1);
                 } else {
                     $pos['value'] = $value + ($value+2);
                 }
-            } else if ( $this->wonderStage == $card->getAge() - 1 ){                
+            } else if ( $targetAge == $card->getAge() ){                
                 $pos['value'] = $value / $cardLeft;
             } else {
                 $pos['value'] = $value / 6 ;
