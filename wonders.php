@@ -65,8 +65,7 @@ class SevenWonders {
             $this->creator = $user;
         $this->players[] = $user;
         $user->setGame($this);
-
-        echo ( count($this->players) ." ?= " . $this->maxplayers ."\n");
+        
         if (count($this->players) == $this->maxplayers)
             $this->startGame();
     }

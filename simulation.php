@@ -22,15 +22,13 @@ class Simulation {
     public $game;
     public $nbSimul = -1;
     public $nbPlayers = 3;
-    public function broadcast( $type, $msg, $exclude=null ){
-        echo $type . "\n";
+    public function broadcast( $type, $msg, $exclude=null ){      
         if ( $type === 'score' ){
             // end of the game            
         }
         
     }
     public function start( ){
-        echo "starting" . "\n";
         $this->game = new SevenWonders();
         $this->game->maxplayers = $this->nbPlayers;
         $this->game->name = "simulation";
