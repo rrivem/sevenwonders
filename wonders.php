@@ -397,50 +397,12 @@ class SevenWonders {
 
     private function endGame(){
         $scores = array();
-        
-        $data = array();      
-        if ( !file_exists("stats/robot_info.csv")  ){
-            $str = "players,wonder_side,";
-            $player = $this->players[0];
-            $points = $player->calcPoints( true );
-            $str .= implode(",", array_keys($points)) . ",";
-            $weights = $player->getCostWeights();
-            $str .= implode(",", array_keys($weights));
-            $data[] = $str;
-        } 
-        
-        $winners = array();
+                
         foreach($this->players as $player){
-            $points = $player->calcPoints( true );
-            $scores[$player->id()] = $points;
-            if ( $player->isRobot() ){
-                $weights = $player->getCostWeights( );
-                $info = $player->getPublicInfo();                        
-                $str = "";
-                $str .= count( $this->players ).",";
-                $str .= $info['wonder']["name"]."_".$info['wonder']["side"].",";
-                $str .= implode(", ", $points) .",";
-                $str .= implode(", ", $weights);                       
-
-                $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];
-                $data[] = $str;
-            }
+            $points = $player->calcPoints( );
+            $scores[$player->id()] = $points;            
             $player->quitGame();
-            
-        }
-        asort( $winners );
-        $str = "";
-        foreach($winners as $name => $score ){            
-            $str .= "," .$name;
-        } 
-        for ( $i=0; $i<count($data); $i++ ) {
-            $data[$i] .= $str;
-        }
-        if ( count($data) ) {
-            if ( !file_exists("stats"))
-                mkdir("stats");
-            file_put_contents("stats/robot_info.csv", implode("\n", $data) ."\n", FILE_APPEND);
-        }
+        }        
         $this->server->broadcast('scores', $scores);
     }
     
