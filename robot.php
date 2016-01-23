@@ -12,6 +12,11 @@ class Robot extends Player{
         $this->_name = "Robot $unique";
         $this->_id = $id;
         $this->serverOnly = $serverOnly;
+        
+        foreach ( $this->costWeights as $name => $weight ){
+            $this->costWeights[$name] = rand ( 0 , 40 ) / 10;
+        }
+        
     }
     public function getCostWeights() {
         return $this->costWeights;
@@ -55,9 +60,7 @@ class Robot extends Player{
 
     public function setGame($game) {
         parent::setGame( $game );
-		foreach ( $this->costWeights as $name => $weight ){
-            $this->costWeights[$name] = rand ( 5 , 20 ) / 10;
-        }
+		
     }
 	
     public function sendHand() {
