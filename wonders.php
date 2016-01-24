@@ -405,7 +405,7 @@ class SevenWonders {
             $winners[$idx] = $points['total'];
             $player->quitGame();            
         }        
-        asort( $winners );
+        arsort( $winners );
         $pos = 0;
         foreach($winners as $idx => $score ){
             $this->players[$idx]->victories[$pos]++;

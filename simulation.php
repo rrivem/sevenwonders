@@ -19,14 +19,16 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $nbSimul = 1000;
+    public $nbSimul = 100;
     public $nbPlayers = 3;
     
     public $simulationType = "herd";
-    public $herdSize = 100;
+    public $herdSize = 10;
     
+    public $loadHerd = true;
     public $dataFilename = "game_info";
     public $statsFilename = "game_stats";
+    public $herdFilename = "herd";
     
     protected $game;
     protected $herd;
@@ -68,7 +70,7 @@ class Simulation {
                 $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];
                 $data[] = $str;                           
             }
-            asort( $winners );
+            arsort( $winners );
             $str = "";
             $pos = 0;
             foreach($winners as $name => $score ){            
@@ -106,6 +108,11 @@ class Simulation {
             $stats .= "\n";        
             $stats .="name,           ,win,2nd,3rd,4th,5th,6th,7th,score,".implode(",", array_keys($this->herd[0]->getCostWeights( ))).",tot\n";
         }
+        uasort( $this->herd,
+            function ($a, $b) {
+                return $a->victories[0] > $b->victories[0];
+            }
+        );
         foreach($this->herd as $player ){
             $totalPlay = array_sum( $player->victories );
             if ( $totalPlay == 0 ){
@@ -123,9 +130,22 @@ class Simulation {
         return $stats;
     }
     public function start( ){
+        $herdFilename = "stats/".$this->herdFilename .".json";
+        
         if ( $this->simulationType === "herd" ){
-            for ( $i=0; $i<$this->herdSize; $i++){
-                $this->herd[] = new Robot(gentoken(), $i, true);
+            if ( $this->loadHerd ){
+                $herdData = json_decode(file_get_contents($herdFilename), true);  
+                for ( $i=0; $i<$this->herdSize; $i++){
+                    if ( isset( $herdData[$i]) ){
+                        $this->herd[] = new Robot(gentoken(), $i, true, $herdData[$i] );
+                    } else {
+                        $this->herd[] = new Robot(gentoken(), $i, true);
+                    }
+                }
+            } else {
+                for ( $i=0; $i<$this->herdSize; $i++){
+                    $this->herd[] = new Robot(gentoken(), $i, true);
+                }
             }
         }
         $idx = 0;
@@ -134,6 +154,13 @@ class Simulation {
         }
         $filename = "stats/".$this->statsFilename . count( $this->game->players ) .".csv";
         file_put_contents($filename, $this->dumpStats( ));
+        
+        $herdData = array();
+        foreach($this->herd as $player ){
+            $herdData[] = $player->getCostWeights( );
+        }        
+        file_put_contents($herdFilename, json_encode( $herdData ));
+        
     }
     public function startGame( $gameIdx ){
         $this->game = new SevenWonders();

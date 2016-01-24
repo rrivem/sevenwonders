@@ -8,15 +8,17 @@ class Robot extends Player{
     protected $serverOnly = false;
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
-    public function __construct($id, $unique, $serverOnly = false) {
+    public function __construct($id, $unique, $serverOnly = false, $costWeights = false) {
         $this->_name = "Robot $unique";
         $this->_id = $id;
         $this->serverOnly = $serverOnly;
-        
-        foreach ( $this->costWeights as $name => $weight ){
-            $this->costWeights[$name] = rand ( 0 , 40 ) / 10;
+        if ( $costWeights === false ){
+            foreach ( $this->costWeights as $name => $weight ){
+                $this->costWeights[$name] = rand ( 0 , 40 ) / 10;
+            }
+        } else if ( $costWeights !== false ) {           
+            $this->costWeights = $costWeights;
         }
-        
     }
     public function getCostWeights() {
         return $this->costWeights;
