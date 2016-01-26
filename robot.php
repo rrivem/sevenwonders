@@ -16,7 +16,7 @@ class Robot extends Player{
             foreach ( $this->costWeights as $name => $weight ){
                 $this->costWeights[$name] = rand ( 0 , 40 ) / 10;
             }
-        } else if ( $costWeights !== false ) {           
+        } else if ( $costWeights !== true ) {           
             $this->costWeights = $costWeights;
         }
     }
