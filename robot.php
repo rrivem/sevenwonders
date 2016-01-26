@@ -99,7 +99,7 @@ class Robot extends Player{
                 $index = $wonderValue['index'];
 				$action = "building";
 			}
-            if ( $max <= 0.2 ){
+            if ( $max <= 1 ){
                 $action = "trashing";
                 $index = 0;
             }
