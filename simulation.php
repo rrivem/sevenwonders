@@ -411,6 +411,14 @@ if ( !file_exists("stats")){
 
 // Start game
 $server = new Simulation();
+
+foreach ( $argv as $arg ){
+    if ( substr($arg,0,1) == "-" ){
+        $vals = explode("=" ,substr($arg,1), 2);
+        $server->$vals[0] = $vals[1];
+    }
+}
+
 $server->start();
 
 
