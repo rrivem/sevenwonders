@@ -36,16 +36,16 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $nbSimul = 900;
-    public $nbPlayers = 4;
+    public $nbSimul = 1000;
+    public $nbPlayers = 3;
     
     // random, herd, select
     public $simulationType = "select";
-    public $herdSize = 18;
+    public $herdSize = 25;
     
     // for the selection type
-    public $rounds = 45; // number of round before a selection is made
-    public $herdChange = 6; // number of individuals that are changed in the herd
+    public $rounds = 25; // number of round before a selection is made
+    public $herdChange = 5; // number of individuals that are changed in the herd
     
     public $loadHerd = false;
     public $dataFilename = "game_info";
@@ -57,8 +57,49 @@ class Simulation {
     protected $game;
     protected $herd;
     protected $herdSelection = array();
-    protected $wonderStats;
-    
+    protected $wonderStats = array(
+        'positions' => array(),
+        'details' => array(),
+        'score' => array(),
+        'winscore' => array()
+    );
+    protected $playerStats= array(
+        'positions' => array(),
+        'details' => array(),
+        'score' => array(),
+        'winscore' => array()
+    );
+        
+    protected function addStats( &$where, $name, $score, $pos, $winner ){
+        if ( !isset($where['positions'][$name])){
+            $where['positions'][$name] = array_fill(0, 7, 0 );
+        }
+        $where['positions'][$name][$pos]++;
+
+        if ( $pos == 0 ){            
+            if ( !isset($where['details'][$winner])){
+                $where['details'][$winner] = array( 'total' => 0 );
+            }
+            $where['details'][$winner]['total']++;
+
+            if ( !isset($where['winscore'][$name])){
+                $where['winscore'][$name] = array_fill(0, 100, 0 );
+            }
+            if ( !isset($where['winscore'][$name][$score])){
+                $where['winscore'][$name][$score] = 0;
+            }
+            $where['winscore'][$name][$score]++;
+        } else {                    
+            if ( !isset($where['details'][$winner][$name])){
+                $where['details'][$winner][$name] = 0;
+            }
+            $where['details'][$winner][$name]++;
+        }                
+        if ( !isset($where['score'][$name])){
+            $where['score'][$name] = array_fill(0, 100, 0 );
+        }
+        $where['score'][$name][$score]++;
+    }
     public function broadcast( $type, $msg, $exclude=null ){     
         echo $type ."\n";
         if ( $type === 'scores' ){
@@ -79,7 +120,8 @@ class Simulation {
             } 
 
             $winners = array();
-            foreach($this->game->players as $player){
+            $winnersPlayers = array();
+            foreach($this->game->players as $idx => $player){
                 $points = $player->calcPoints( true );
                 $scores[$player->id()] = $points;
                 
@@ -92,19 +134,32 @@ class Simulation {
                 $str .= implode(",", $weights).",";              
                 $str .= implode(",", $player->victories).","; 
                 $str .= $player->totalScore; 
-                $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];
+                $winners[$info['wonder']["name"]."_".$info['wonder']["side"]]=$points['total'];                
+                $winnersPlayers[$player->name()] = $points['total'];
+                
                 $data[] = $str;                           
             }
-            arsort( $winners );
+            arsort( $winners );            
             $str = "";
             $pos = 0;
-            foreach($winners as $name => $score ){            
+            
+            foreach($winners as $name => $score ){                  
                 $str .= "," .$name;
-                if ( !isset($this->wonderStats[$name])){
-                    $this->wonderStats[$name] = array( 0, 0, 0, 0, 0, 0, 0);
+                if ( $pos == 0 ){
+                    $winner = $name;
                 }
-                $this->wonderStats[$name][$pos]++;
+                $this->addStats( $this->wonderStats, $name, $score, $pos, $winner );                
                 $pos++;
+            } 
+            
+            arsort( $winnersPlayers );
+            $playerPos = 0;
+            foreach($winnersPlayers as $name => $score ){                
+                if ( $playerPos == 0 ){
+                    $winner = $name;
+                }
+                $this->addStats( $this->playerStats, $name, $score, $playerPos, $winner );                
+                $playerPos++;
             } 
             for ( $i=0; $i<count($data); $i++ ) {
                 $data[$i] .= $str;
@@ -113,25 +168,109 @@ class Simulation {
                 file_put_contents($filename, implode("\n", $data) ."\n", FILE_APPEND);
             }
             
-            echo $this->dumpStats( );
+            echo $this->dumpStats( false );
         }
         
     }
-    public function dumpStats( ){
-        
+    protected function dumpPosition( $positions, $csv = true) {
         $stats = "";
-        $stats .="name,           ,win,2nd,3rd,4th,5th,6th,7th,tot\n";
-        foreach($this->wonderStats as $name => $scores ){
+        if ( $csv ){
+            $stats .="name,win,2nd,3rd,4th,5th,6th,7th,tot_play\n";
+        } else {
+            $stats .="name            ,win,2nd,3rd,4th,5th,6th,7th,tot\n";
+        }
+        foreach($positions as $name => $scores ){
             $totalPlay = array_sum( $scores );
-            $stats .= sprintf("%-15s",$name.",");
+            if ( $csv ){
+                $stats .= $name;
+            }else {
+                $stats .= sprintf("%-15s",$name);
+            }
             foreach($scores as $score ){
                 $stats .= sprintf(",%3d", round($score/$totalPlay*100));
             }
             $stats .= ",$totalPlay\n";
         }
+        return $stats;
+    }
+    protected function dumpScore( $score ) {
+        $stats = "";
+        $stats .="name";
+        for ($i=20; $i<80; $i++ ){
+            $stats .=",$i";
+        }
+        $stats .= "\n";  
+        foreach($score as $name => $data ){
+            $totScore = array_sum( $score[$name] );
+            $stats .= $name;
+            for ($i=20; $i<80; $i++ ){
+                $stats .=",".round($score[$name][$i]/$totScore*100);
+            }
+            $stats .= "\n";  
+        }        
+        return $stats;
+    }
+    protected function dumpDetails( $details ) {
+        $stats = "";
+        
+        $first = true;
+        $total = 0;
+        $names = array();
+        foreach($details as $winner => $data ){
+            $total += $data['total'];
+            $names[] = $winner;
+        }
+        foreach($details as $winner => $data ){
+            if ( $first ){
+                $stats .="winner";
+                foreach($names as $name ){
+                    $stats .= ",".$name;                    
+                }
+                $stats .= ",total\n";
+                $first = false;
+            }
+            $stats .= $winner;            
+            foreach($names as $name ){
+                if ( isset($details[$name][$winner]) && isset($details[$winner][$name])  ){
+                    $stats .= ",".round($details[$winner][$name]/($details[$winner][$name] + $details[$name][$winner])*100);
+                } else if ( isset($details[$winner][$name]) ) {
+                    $stats .= ",100";
+                } else if (isset($details[$name][$winner])) {
+                    $stats .= ",0";
+                } else {
+                    $stats .= ", ";
+                }
+            }
+            $stats .= ",".round( $details[$winner]['total']/$total*100 );
+            $stats .= "\n";
+        }        
+        return $stats;
+    }
+    
+    public function dumpStats( $csv = true ){
+        
+        $stats = "";
+        $stats .= "Position\n"; 
+        $stats .= $this->dumpPosition ( $this->wonderStats['positions'], $csv );
+        
+        if ( $csv ){
+            $stats .= "\nDetails\n"; 
+            $stats .= $this->dumpDetails ( $this->wonderStats['details'] );
+            
+            $stats .= "\nScore\n"; 
+            $stats .= $this->dumpScore ( $this->wonderStats['score'] );
+            
+            $stats .= "\nWining score\n"; 
+            $stats .= $this->dumpScore ( $this->wonderStats['winscore'] );            
+        }
+        
         if ( count( $this->herd ) >0 ){
-            $stats .= "\n";        
-            $stats .="name,           ,win,2nd,3rd,4th,5th,6th,7th,score,".implode(",", array_keys($this->herd[0]->getCostWeights( ))).",tot\n";
+            $stats .= "\n";    
+            if ( $csv ){
+                $stats .="name,win,2nd,3rd,4th,5th,6th,7th,score,".implode(",", array_keys($this->herd[0]->getCostWeights( ))).",tot\n";
+            } else {
+                $stats .="name           ,win,2nd,3rd,4th,5th,6th,7th,score,".implode(",", array_keys($this->herd[0]->getCostWeights( ))).",tot_play\n";
+            }
         }
         uasort( $this->herd, $this->sortFunc );
         foreach($this->herd as $player ){
@@ -139,7 +278,11 @@ class Simulation {
             if ( $totalPlay == 0 ){
                 continue;
             }
-            $stats .= sprintf("%-15s",$player->name().",");
+            if ( $csv ){
+                $stats .= $player->name();
+            } else {
+                $stats .= sprintf("%-15s",$player->name());
+            }
             
             foreach($player->victories as $victory ){
                 $stats .= sprintf(",%3d", round($victory/$totalPlay*100));
@@ -148,6 +291,17 @@ class Simulation {
             $stats .= ",".implode(", ", $player->getCostWeights( ));
             $stats .= ",$totalPlay\n";
         }
+        if ( $csv ){
+            $stats .= "\nDetails\n"; 
+            $stats .= $this->dumpDetails ( $this->playerStats['details'] );
+            
+            $stats .= "\nScore\n"; 
+            $stats .= $this->dumpScore ( $this->playerStats['score'] );
+            
+            $stats .= "\nWining score\n"; 
+            $stats .= $this->dumpScore ( $this->playerStats['winscore'] );            
+        }
+        
         return $stats;
     }
     public function start( ){
