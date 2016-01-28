@@ -376,12 +376,12 @@ class Simulation {
                         $needUNit = 0;                        
                     }
                 }
+                $top = count( $this->herd ) -1;
                 if ( $needUNit ){
                     $unit = new Robot(gentoken(), 0, true, true);
                     $unit->setName("unit");
                     $this->herd[] = $unit;
-                }
-                
+                }                
                 for ($i=$needUNit; $i< $this->herdChange; $i++ ){
                     if (is_array($this->newRobotType) ){
                         if ( isset($this->newRobotType[$i-$needUNit]) ){
@@ -397,11 +397,11 @@ class Simulation {
                         $newRobotType = $pos[rand(0,3)];
                     }
                     if ( $newRobotType == "clone" ) {
-                        $this->herd[] = $this->herd[$i-$needUNit]->clonePlayer();
+                        $this->herd[] = $this->herd[$top - $i  + $needUNit]->clonePlayer();
                     } else if ( $newRobotType == "mute" ) {
-                        $this->herd[] = $this->herd[$i-$needUNit]->mutePlayer();
+                        $this->herd[] = $this->herd[$top - $i  + $needUNit]->mutePlayer();
                     } else if ( $newRobotType == "mate" ) {
-                        $this->herd[] = $this->herd[0]->matePlayer( $this->herd[$i-$needUNit+1] );
+                        $this->herd[] = $this->herd[$top]->matePlayer( $this->herd[$top - $i  + $needUNit  -1 ] );
                     } else {
                         $this->herd[] = new Robot(gentoken(), $gameIdx.".".$i, true);
                     }
