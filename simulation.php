@@ -36,16 +36,16 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $nbSimul = 1000;
+    public $nbSimul = 100;
     public $nbPlayers = 3;
     
-    // random, herd, select
-    public $simulationType = "select";
-    public $herdSize = 25;
+    // random, herd, groups
+    public $simulationType = "group";
+    public $herdSize = 12;
     
-    // for the selection type
+    // for selection
     public $rounds = 25; // number of round before a selection is made
-    public $herdChange = 5; // number of individuals that are changed in the herd
+    public $herdChange = 0; // number of individuals that are changed in the herd
     
     public $loadHerd = false;
     public $dataFilename = "game_info";
@@ -364,7 +364,7 @@ class Simulation {
         $this->game->id = gentoken();
         $this->game->server = $this;
         
-        if ( $this->simulationType === "select" ){
+        if ( $this->herdChange > 0 ){
             if ( $gameIdx!=0 && $gameIdx % $this->rounds == 0 ){
                 uasort( $this->herd, $this->sortFunc );                
                 $this->herd = array_splice( $this->herd, $this->herdChange );
@@ -387,20 +387,44 @@ class Simulation {
                 $this->herdSelection = array();
             }
         }
-        if ( $this->simulationType !== "random" ){
+        if ( $this->simulationType === "herd" ){
             if ( count( $this->herdSelection) < $this->game->maxplayers ){
                 shuffle($this->herd);
                 $this->herdSelection = $this->herd;
             }
+        } else if ( $this->simulationType === "group" ){
+            if ( !isset($this->herdSelection[0]) ){
+                for ( $r=0; $r<$this->game->maxplayers; $r++ ){
+                    $this->herdSelection[$r]= array();
+                }
+            }
+            if ( count( $this->herdSelection[0]) == 0 ){
+                uasort( $this->herd, $this->sortFunc );
+                $idx = 0;                
+                $max = round( count( $this->herd ) / $this->game->maxplayers );
+                foreach( $this->herd as $robot ){                    
+                    $this->herdSelection[$idx][] = $robot;
+                    $max--;                    
+                    if ( $max == 0 ){
+                        $max = round( count( $this->herd ) / $this->game->maxplayers );
+                        shuffle($this->herdSelection[$idx]);
+                        $idx++;
+                    }
+                }
+            }
         }
+                
         for ( $r=0; $r<$this->game->maxplayers; $r++ ){
             if ( $this->simulationType === "random" ){
                 $user = new Robot(gentoken(), $gameIdx."_".$r, true);
-            } else  if ( $this->simulationType === "herd" || $this->simulationType === "select" ){                      
+            } else  if ( $this->simulationType === "herd" ){                      
                 $user = array_pop( $this->herdSelection );
-            }
+            } else if ( $this->simulationType === "group" ){                
+                $user = array_pop( $this->herdSelection[$r] );
+            } 
             $this->game->addPlayer($user);
         }
+
     } 
 }
 
