@@ -36,16 +36,17 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $nbSimul = 100;
+    public $nbSimul = 10000;
     public $nbPlayers = 3;
     
-    // random, herd, groups
+    // random, herd, group
     public $simulationType = "group";
-    public $herdSize = 12;
+    public $herdSize = 24;
     
     // for selection
-    public $rounds = 25; // number of round before a selection is made
-    public $herdChange = 0; // number of individuals that are changed in the herd
+    public $rounds = 240; // number of round before a selection is made
+    public $herdChange = 6; // number of individuals that are changed in the herd
+    public $newRobotType = ["mute", "mute" ]; // random, clone, mute, mate, new, array is uspported
     
     public $loadHerd = false;
     public $dataFilename = "game_info";
@@ -376,12 +377,34 @@ class Simulation {
                     }
                 }
                 if ( $needUNit ){
-                    $unit = new Robot(gentoken(), $i, true, true);
+                    $unit = new Robot(gentoken(), 0, true, true);
                     $unit->setName("unit");
                     $this->herd[] = $unit;
                 }
+                
                 for ($i=$needUNit; $i< $this->herdChange; $i++ ){
-                    $this->herd[] = new Robot(gentoken(), $gameIdx.".".$i, true);
+                    if (is_array($this->newRobotType) ){
+                        if ( isset($this->newRobotType[$i-$needUNit]) ){
+                            $newRobotType = $this->newRobotType[$i-$needUNit];
+                        } else {
+                            $newRobotType = "random";
+                        }
+                    } else {
+                        $newRobotType = $this->newRobotType;
+                    }
+                    if ( $newRobotType == "random" ){
+                        $pos = ["new", "clone", "mute", "mate" ];
+                        $newRobotType = $pos[rand(0,3)];
+                    }
+                    if ( $newRobotType == "clone" ) {
+                        $this->herd[] = $this->herd[$i-$needUNit]->clonePlayer();
+                    } else if ( $newRobotType == "mute" ) {
+                        $this->herd[] = $this->herd[$i-$needUNit]->mutePlayer();
+                    } else if ( $newRobotType == "mate" ) {
+                        $this->herd[] = $this->herd[0]->matePlayer( $this->herd[$i-$needUNit+1] );
+                    } else {
+                        $this->herd[] = new Robot(gentoken(), $gameIdx.".".$i, true);
+                    }
                 }        
                 
                 $this->herdSelection = array();

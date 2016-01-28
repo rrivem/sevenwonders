@@ -9,7 +9,7 @@ class Robot extends Player{
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
     public function __construct($id, $unique, $serverOnly = false, $costWeights = false) {
-        $this->_name = "Robot $unique";
+        $this->_name = "$unique";
         $this->_id = $id;
         $this->serverOnly = $serverOnly;
         if ( $costWeights === false ){
@@ -19,6 +19,37 @@ class Robot extends Player{
         } else if ( $costWeights !== true ) {           
             $this->costWeights = $costWeights;
         }
+    }
+    public function clonePlayer() {
+        $player = new Robot( "c".$this->_id, 0, $this->serverOnly, $this->costWeights );
+        $player->setName( "c". $this->name() );
+        return $player;
+    }
+    public function mutePlayer( $probs = 0.2 ) {
+        $weights = $this->costWeights;
+        foreach( $weights as $name=>$weight ){
+            if ( rand ( 0 , 100 ) < $probs * 100 ){
+                $weights[$name] = $weight + rand ( -10 , 10 ) / 10;
+                if ( $weights[$name] < 0 ){
+                    $weights[$name] = 0;
+                }
+            }
+        }
+        $player = new Robot( "m".$this->_id, 0, $this->serverOnly, $weights );
+        $player->setName( "m". $this->name() );
+        return $player;
+    }
+    public function matePlayer( Robot $otherPlayer, $probs = 0.5 ) {
+        $weightsA = $this->costWeights;
+        $weightsB = $otherPlayer->costWeights;
+        foreach( $weightsA as $name=>$weight ){
+            if ( rand ( 0 , 100 ) < $probs * 100 ){
+                $weightsA[$name] = $weightsB[$name];                
+            }
+        }
+        $player = new Robot( "x".$this->_id, 0, $this->serverOnly, $weightsA );
+        $player->setName( "(".$otherPlayer->name() . "x" . $this->name().")" );
+        return $player;
     }
     public function getCostWeights() {
         return $this->costWeights;
