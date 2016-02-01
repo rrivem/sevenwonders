@@ -306,10 +306,11 @@ class Simulation {
         return $stats;
     }
     public function start( ){
-        $herdFilename = "stats/".$this->herdFilename .".json";
+        
         
         if ( $this->simulationType !== "random" ){
-            if ( $this->loadHerd ){
+            if ( $this->loadHerd !== false  ){
+                $herdFilename = "stats/".$this->loadHerd .".json";
                 $herdData = json_decode(file_get_contents($herdFilename), true);  
                 for ( $i=0; $i<$this->herdSize; $i++){
                     if ( isset( $herdData[$i]) ){
@@ -324,14 +325,14 @@ class Simulation {
                             $robot = new Robot(gentoken(), $i, true, true);
                             $robot->setName("unit");
                         } else {
-                            $robot = new Robot(gentoken(), $i, true);
+                            $robot = new Robot(gentoken(), $i, true, false);
                         }
                     }
                     $this->herd[] = $robot;
                 }
             } else {
                 for ( $i=0; $i<$this->herdSize-1; $i++){
-                    $this->herd[] = new Robot(gentoken(), $i, true);
+                    $this->herd[] = new Robot(gentoken(), $i, true, false);
                 }
                 $unit = new Robot(gentoken(), $i, true, true);
                 $unit->setName("unit");
@@ -353,7 +354,8 @@ class Simulation {
                 'victories' => $player->victories, 
                 'totalScore'=> $player->totalScore
             );
-        }        
+        }   
+        $herdFilename = "stats/".$this->herdFilename .".json";
         file_put_contents($herdFilename, json_encode( $herdData ));
         
     }
