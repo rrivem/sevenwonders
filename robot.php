@@ -8,7 +8,7 @@ class Robot extends Player{
     protected $serverOnly = false;
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
-    public function __construct($id, $unique, $serverOnly = false, $costWeights = false) {
+    public function __construct($id, $unique, $serverOnly = false, $costWeights = "random" ) {
         $this->_name = "$unique";
         $this->_id = $id;
         $this->serverOnly = $serverOnly;
@@ -16,7 +16,20 @@ class Robot extends Player{
             foreach ( $this->costWeights as $name => $weight ){
                 $this->costWeights[$name] = rand ( 0 , 40 ) / 10;
             }
-        } else if ( $costWeights !== true ) {           
+        } else if ( is_string($costWeights) ) {
+            $players = json_decode(file_get_contents("cards/robots.json"), true);
+            $player = null;
+            foreach ( $players as $p ){
+                if ( $p['name'] == $costWeights ){
+                    $players = $p;
+                }
+            }            
+            if ( !$player ) {
+                $player = $players[ rand ( 0 , count($players)-1 ) ];
+            }
+            $this->costWeights = $player["weights"];
+            $this->setName( $player["name"] );
+        } else if (is_array( $costWeights ) ) {           
             $this->costWeights = $costWeights;
         }
     }
