@@ -75,31 +75,30 @@ class Simulation {
         if ( !isset($where['positions'][$name])){
             $where['positions'][$name] = array_fill(0, 7, 0 );
         }
+        if ( !isset($where['winscore'][$name])){
+            $where['winscore'][$name] = array_fill(0, 30, 0 );
+        }
+        if ( !isset($where['score'][$name])){
+            $where['score'][$name] = array_fill(0, 30, 0 );
+        }
+        
         $where['positions'][$name][$pos]++;
-
+        $histscore = round( $score / 3 );
         if ( $pos == 0 ){            
             if ( !isset($where['details'][$winner])){
                 $where['details'][$winner] = array( 'total' => 0 );
             }
             $where['details'][$winner]['total']++;
-
-            if ( !isset($where['winscore'][$name])){
-                $where['winscore'][$name] = array_fill(0, 100, 0 );
-            }
-            if ( !isset($where['winscore'][$name][$score])){
-                $where['winscore'][$name][$score] = 0;
-            }
-            $where['winscore'][$name][$score]++;
-        } else {                    
+            $where['winscore'][$name][$histscore]++;
+            $where['winspoints'][$name][] = $score;
+        } else {                                
             if ( !isset($where['details'][$winner][$name])){
                 $where['details'][$winner][$name] = 0;
             }
             $where['details'][$winner][$name]++;
-        }                
-        if ( !isset($where['score'][$name])){
-            $where['score'][$name] = array_fill(0, 100, 0 );
-        }
-        $where['score'][$name][$score]++;
+        }                        
+        $where['score'][$name][$histscore]++;        
+        $where['points'][$name][] = $score;
     }
     public function broadcast( $type, $msg, $exclude=null ){     
         echo $type ."\n";
@@ -318,7 +317,7 @@ class Simulation {
                         if ( $this->simulationType === "herd" ){
                             $robot->setName( $herdData[$i]['name']);
                         } else {
-                            $robot->setName( "x" . $herdData[$i]['name']);
+                            $robot->setName( "-" . $herdData[$i]['name']);
                         }
                     } else {
                         if ( $i == $this->herdSize-1 ){
@@ -405,7 +404,7 @@ class Simulation {
                     } else if ( $newRobotType == "mate" ) {
                         $this->herd[] = $this->herd[$top]->matePlayer( $this->herd[$top - $i  + $needUNit  -1 ] );
                     } else {
-                        $this->herd[] = new Robot(gentoken(), $gameIdx.".".$i, true);
+                        $this->herd[] = new Robot(gentoken(), $gameIdx.".".$i, true, false );
                     }
                 }        
                 
@@ -441,7 +440,7 @@ class Simulation {
                 
         for ( $r=0; $r<$this->game->maxplayers; $r++ ){
             if ( $this->simulationType === "random" ){
-                $user = new Robot(gentoken(), $gameIdx."_".$r, true);
+                $user = new Robot(gentoken(), $gameIdx."_".$r, true, false );
             } else  if ( $this->simulationType === "herd" ){                      
                 $user = array_pop( $this->herdSelection );
             } else if ( $this->simulationType === "group" ){                
