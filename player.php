@@ -210,6 +210,7 @@ class Player {
         if ( $countCards ){
             $points[Card::BROWN] = $cardsCount[Card::BROWN];
             $points[Card::GREY] = $cardsCount[Card::GREY];
+            $points ['cards'] = $countCards;
         }
         return $points;
     }

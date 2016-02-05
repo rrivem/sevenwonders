@@ -109,6 +109,28 @@
         "build":2.1
     }
 }, {
+    "name":"4p_p_e51b",
+    "weights":{
+        "military":3.1,
+        "points":2.3,
+        "coins":3,
+        "cards":3,
+        "wonder":3,
+        "cost":4.6,
+        "build":2.1
+    }
+}, {
+    "name":"4p_p_e51c",
+    "weights":{
+        "military":3,
+        "points":2.3,
+        "coins":3.8,
+        "cards":3,
+        "wonder":3.7,
+        "cost":4.5,
+        "build":2.1
+    }
+}, {
     "name":"4p_p_r49",
     "weights":{
         "military":1.7,
