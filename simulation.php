@@ -30,6 +30,13 @@ function sortPoints($a, $b) {
     $ptB = $b->totalScore;                
     return $ptA/$totA>$ptB/$totB?1:-1;
 }
+function sortMedian($a, $b) {
+    if ( count( $a->historicalScores) == 0 ) return -1;
+    if ( count( $b->historicalScores) == 0  ) return 1;
+    $ptA = $a->medianScore();
+    $ptB = $b->medianScore();
+    return $ptA>$ptB ? 1 : -1 ;
+}
 // Run from command prompt > php demo.php
 require_once("wonders.php");
 require_once("player.php");
@@ -61,26 +68,60 @@ class Simulation {
     protected $wonderStats = array(
         'positions' => array(),
         'details' => array(),
-        'score' => array(),
-        'winscore' => array()
+        'score' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ) ),
+        'weights' => array(),
+        'cards' => array( 'all' => array( 'all' => array() ), 'win'=>array( 'all' => array() )),
+        'colors' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ))
+        
     );
     protected $playerStats= array(
         'positions' => array(),
         'details' => array(),
-        'score' => array(),
-        'winscore' => array(),
-        'weights' => array()
+        'score' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ) ),
+        'weights' => array(),
+        'cards' => array( 'all' => array( 'all' => array() ), 'win'=>array( 'all' => array() )),
+        'colors' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ))
     );
-        
-    protected function addStats( &$where, $name, $score, $pos, $winner, $playerData ){
+    protected function addHist( $src, &$dst ){
+        foreach ( $src as $color => $point ){
+            if ( !isset($dst[$color])){
+                $dst[$color] = array();
+            }
+            if ( !isset($dst[$color][$point])){
+                $dst[$color][$point] = 1;
+            } else {
+                $dst[$color][$point]++;
+            }
+        }
+    }
+    protected function addStats( &$where, $name, $score, $pos, $winner, $playerData ){        
+        $player = $playerData[0];
+        $points = $playerData[1];
+        $cards = $player->calcCards();
         if ( !isset($where['positions'][$name])){
             $where['positions'][$name] = array_fill(0, 7, 0 );
         }
-        if ( !isset($where['winscore'][$name])){
-            $where['winscore'][$name] = array_fill(0, 30, 0 );
+        if ( !isset($where['score']['win'][$name])){
+            $where['score']['win'][$name] = array_fill(0, 30, 0 );
+            $where['score']['win'][$name]['vals'] = array();
         }
-        if ( !isset($where['score'][$name])){
-            $where['score'][$name] = array_fill(0, 30, 0 );
+        if ( !isset($where['score']['win']['all'])){
+            $where['score']['win']['all'] = array_fill(0, 30, 0 );
+            $where['score']['win']['all']['vals'] = array();
+        }
+        if ( !isset($where['score']['all'][$name])){
+            $where['score']['all'][$name] = array_fill(0, 30, 0 );
+            $where['score']['all'][$name]['vals'] = array();
+        }
+        if ( !isset($where['score']['all']['all'])){
+            $where['score']['all']['all'] = array_fill(0, 30, 0 );
+            $where['score']['all']['all']['vals'] = array();
+        }
+        if ( !isset($where['color'][$name])){
+            $where['color'][$name] = array();
+        }
+        if ( !isset($where['cards'][$name])){
+            $where['cards'][$name] = array();
         }
         
         $where['positions'][$name][$pos]++;
@@ -90,19 +131,32 @@ class Simulation {
                 $where['details'][$winner] = array( 'total' => 0 );
             }
             $where['details'][$winner]['total']++;
-            $where['winscore'][$name][$histscore]++;
-            $where['winspoints'][$name][] = $score;
+            
+            $where['score']['win'][$name][$histscore]++;
+            $where['score']['win'][$name]['vals'][] = $score;
+            $where['score']['win']['all'][$histscore]++;
+            $where['score']['win']['all']['vals'][] = $score;
+            
+            $this->addHist( $points, $where['colors']['win'][$name] );
+            $this->addHist( $cards, $where['cards']['win'][$name] );          
+            $this->addHist( $points, $where['colors']['win']['all'] );
+            $this->addHist( $cards, $where['cards']['win']['all'] );          
         } else {                                
             if ( !isset($where['details'][$winner][$name])){
                 $where['details'][$winner][$name] = 0;
             }
             $where['details'][$winner][$name]++;
         }                        
-        $where['score'][$name][$histscore]++;        
-        $where['points'][$name][] = $score;
+        $where['score']['all'][$name][$histscore]++;        
+        $where['score']['all'][$name]['vals'][] = $score;        
+        $where['score']['all']['all'][$histscore]++;        
+        $where['score']['all']['all']['vals'][] = $score;
         
-        
-        $where['weights'][$name] = $playerData->getCostWeights();
+        $where['weights'][$name] = $player->getCostWeights();
+        $this->addHist( $points, $where['colors']['all'][$name] );
+        $this->addHist( $cards, $where['cards']['all'][$name] );
+        $this->addHist( $points, $where['colors']['all']['all'] );
+        $this->addHist( $cards, $where['cards']['all']['all'] );
         
     }
     public function broadcast( $type, $msg, $exclude=null ){     
@@ -127,7 +181,7 @@ class Simulation {
             $winners = array();
             $winnersPlayers = array();
             foreach($this->game->players as $idx => $player){
-                $points = $player->calcPoints( true );
+                $points = $player->calcPoints( );
                 $scores[$player->id()] = $points;
                 
                 $weights = $player->getCostWeights( );
@@ -141,10 +195,10 @@ class Simulation {
                 $str .= $player->totalScore; 
                 $wn = $info['wonder']["name"]."_".$info['wonder']["side"];
                 $winners[$wn]=$points['total'];                
-                $winnersData[$wn] = $player;
+                $winnersData[$wn] = array( $player, $points, $info);
                 
                 $winnersPlayers[$player->name()] = $points['total'];
-                $winnersPlayersData[$player->name()] = $player;
+                $winnersPlayersData[$player->name()] = array( $player, $points, $info);
                 $data[] = $str;                           
             }
             arsort( $winners );            
@@ -155,8 +209,8 @@ class Simulation {
                 $str .= "," .$name;
                 if ( $pos == 0 ){
                     $winner = $name;
-                }
-                $this->addStats( $this->wonderStats, $name, $score, $pos, $winner, $winnersPlayersData[$name] );                
+                }                
+                $this->addStats( $this->wonderStats, $name, $score, $pos, $winner, $winnersData[$name] );                
                 $pos++;
             } 
             
@@ -166,7 +220,7 @@ class Simulation {
                 if ( $playerPos == 0 ){
                     $winner = $name;
                 }
-                $this->addStats( $this->playerStats, $name, $score, $playerPos, $winner, $winnersData[$name] );                
+                $this->addStats( $this->playerStats, $name, $score, $playerPos, $winner, $winnersPlayersData[$name] );                
                 $playerPos++;
             } 
             for ( $i=0; $i<count($data); $i++ ) {
@@ -204,13 +258,22 @@ class Simulation {
     protected function dumpScore( $score ) {
         $stats = "";
         $stats .="name";
+        $stats .=",average";
+        $stats .=",median";
         for ($i=0; $i<30; $i++ ){
             $stats .=",".($i*3);
         }
         $stats .= "\n";  
         foreach($score as $name => $data ){
+            if ( count($score[$name]['vals']) == 0 ){                
+                continue;
+            }
             $totScore = array_sum( $score[$name] );
+            $average = array_sum( $score[$name]['vals'] ) / count($score[$name]['vals']);
+            $median = sort( $score[$name]['vals'] )[floor(count($score[$name]['vals'])/2)];
             $stats .= $name;
+            $stats .= ",".round($average*100)/100;
+            $stats .= ",".$median;
             for ($i=0; $i<30; $i++ ){
                 $stats .=",".round($score[$name][$i]/$totScore*100);
             }
@@ -254,7 +317,49 @@ class Simulation {
         }        
         return $stats;
     }
-    
+    protected function dumpHist( $hist ) {
+        $stats = "";
+        $names = array();
+        $colors = array();
+        foreach($hist as $name => $data ){
+            $names[] = $name;
+            foreach($data as $color => $d ){
+                if (isset( $colors[$color] )){
+                    $index = $colors[$color];
+                } else {
+                    $index = array();
+                }
+                foreach( $d as $i => $v ){
+                    if (!in_array($i, $index)){
+                        $index[] = $i;
+                    }
+                }
+                sort( $index );
+                $colors[$color] = $index;
+            }
+        }
+        ksort( $colors );
+        foreach($colors as $color => $index ){
+            $stats .= "\n$color\n"; 
+            $stats .= "name"; 
+            foreach ($index as $i ){
+                $stats .= ",".$i; 
+            }
+            $stats .= "\n";
+            foreach ($names as $name ){
+                if ( !isset($hist[$name][$color]) ){
+                    continue;
+                }
+                $stats .= "$name"; 
+                $tot = array_sum( $hist[$name][$color] );
+                foreach ($index as $i ){
+                    $stats .= ",".round($hist[$name][$color][$i]/$tot*100); 
+                }
+                $stats .= "\n";
+            }
+        }
+        return $stats;
+    }
     public function dumpStats( $csv = true ){
         
         $stats = "";
@@ -266,10 +371,22 @@ class Simulation {
             $stats .= $this->dumpDetails ( $this->wonderStats['details'] );
             
             $stats .= "\nScore\n"; 
-            $stats .= $this->dumpScore ( $this->wonderStats['score'] );
+            $stats .= $this->dumpScore ( $this->wonderStats['score']['all'] );
             
             $stats .= "\nWining score\n"; 
-            $stats .= $this->dumpScore ( $this->wonderStats['winscore'] );            
+            $stats .= $this->dumpScore ( $this->wonderStats['score']['win'] );            
+            
+            $stats .= "\nScore by color\n";           
+            $stats .= $this->dumpHist ( $this->wonderStats['colors']['all'] );            
+            
+            $stats .= "\nWining score by color\n";           
+            $stats .= $this->dumpHist ( $this->wonderStats['colors']['win'] );            
+            
+            $stats .= "\nCards\n";           
+            $stats .= $this->dumpHist ( $this->wonderStats['cards']['all'] );            
+            
+            $stats .= "\nWining cards\n";           
+            $stats .= $this->dumpHist ( $this->wonderStats['cards']['win'] );            
         }
         
         if ( count( $this->herd ) >0 ){
@@ -304,10 +421,22 @@ class Simulation {
             $stats .= $this->dumpDetails ( $this->playerStats['details'] );
             
             $stats .= "\nScore\n"; 
-            $stats .= $this->dumpScore ( $this->playerStats['score'] );
+            $stats .= $this->dumpScore ( $this->playerStats['score']['all'] );
             
             $stats .= "\nWining score\n"; 
-            $stats .= $this->dumpScore ( $this->playerStats['winscore'] );            
+            $stats .= $this->dumpScore ( $this->playerStats['score']['win'] );            
+            
+            $stats .= "\nScore by color\n";           
+            $stats .= $this->dumpHist ( $this->playerStats['colors']['all'] );            
+            
+            $stats .= "\nWining score by color\n";           
+            $stats .= $this->dumpHist ( $this->playerStats['colors']['win'] );            
+            
+            $stats .= "\nCards\n";           
+            $stats .= $this->dumpHist ( $this->playerStats['cards']['all'] );            
+            
+            $stats .= "\nWining cards\n";           
+            $stats .= $this->dumpHist ( $this->playerStats['cards']['win'] );            
         }
         
         return $stats;

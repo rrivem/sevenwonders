@@ -410,6 +410,7 @@ class SevenWonders {
         foreach($winners as $idx => $score ){
             $this->players[$idx]->victories[$pos]++;
             $this->players[$idx]->totalScore += $score;
+            $this->players[$idx]->historicalScores[] = $score;
             $pos++;
         } 
         $this->server->broadcast('scores', $scores);

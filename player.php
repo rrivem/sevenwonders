@@ -51,7 +51,22 @@ class Player {
     
     public $victories = array( 0, 0, 0, 0, 0, 0, 0);
     public $totalScore = 0;
-    
+    public $historicalScores = array();
+    public function addScore( $score ) {
+        $this->totalScore += $score;
+        $this->historicalScores[] = $score;
+        sort($this->historicalScores);
+    }
+    public function medianScore( ) {
+        $tot = count($this->historicalScores);
+        if ( $tot === 0 ){
+            return 0;
+        } else if ( $tot % 2 == 1){
+            return $this->historicalScores[($tot-1)/2];
+        }else {
+            return ($this->historicalScores[$tot/2-1] + $this->historicalScores[$tot/2])/2;
+        }
+    }
     public function __construct($id, $unique) {
         $this->_name = "Guest $unique";
         $this->_id = $id;        
@@ -158,7 +173,7 @@ class Player {
         $this->send('military', $this->military->json());
     }
 
-    public function calcPoints( $countCards = false ){
+    public function calcPoints( ){
         $points = array(
             'coins' => floor($this->coins / 3),
             'wonder' => 0,
@@ -171,18 +186,8 @@ class Player {
             Card::GREY => 0,
             'total' => 0
         );
-        $cardsCount = array(
-            Card::BLUE => 0,
-            Card::GREEN => 0,
-            Card::RED => 0,
-            Card::YELLOW => 0,
-            Card::PURPLE => 0,
-            Card::BROWN => 0,
-            Card::GREY => 0
-        );
         foreach($this->cardsPlayed as $card){
             $points[$card->getColor()] += $card->points($this);
-            $cardsCount[$card->getColor()]++;
         }
 
         for($i = 0; $i < $this->wonderStage; $i++){
@@ -207,11 +212,6 @@ class Player {
         }
 
         $points['total'] = array_sum($points);
-        if ( $countCards ){
-            $points[Card::BROWN] = $cardsCount[Card::BROWN];
-            $points[Card::GREY] = $cardsCount[Card::GREY];
-            $points ['cards'] = $countCards;
-        }
         return $points;
     }
 

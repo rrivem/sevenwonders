@@ -472,5 +472,19 @@ class Robot extends Player{
                                       $this->coins - $card->getMoneyCost());
         return $possible;
     }
-    
+    public function calcCards(  ){
+        $cardsCount = array();
+        foreach($this->cardsPlayed as $card){
+            $name = $card->getColor()._.$card->getAge();
+            if ( !isset($cardsCount[$name])){
+                $cardsCount[$name] = 0;
+            }
+            $cardsCount[$name]++;
+            if ( !isset($cardsCount[$card->getColor()])){
+                $cardsCount[$card->getColor()] = 0;
+            }
+            $cardsCount[$card->getColor()]++;
+        }
+        return $cardsCount;
+    }
 }
