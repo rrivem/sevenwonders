@@ -478,22 +478,22 @@ class Robot extends Player{
             Card::GREEN => 0,
             Card::RED => 0,
             Card::YELLOW => 0,
-            Card::PURPLE => 0,
             Card::BROWN => 0,
             Card::GREY => 0
         );
         foreach ( $cardsCount as $name => $val ){
-            if ( $name != Card::PURPLE ){
-                $cardsCount[$name."_1"] = $val;
-                $cardsCount[$name."_2"] = $val;
-            }
+            $cardsCount[$name."_1"] = $val;
+            $cardsCount[$name."_2"] = $val;
             if ( $name != Card::BROWN && $name != Card::GREY ){
                 $cardsCount[$name."_3"] = $val;                
             }
         }
+        $cardsCount[ Card::PURPLE ] = 0;
         foreach($this->cardsPlayed as $card){
-            $name = $card->getColor()._.$card->getAge();            
-            $cardsCount[$name]++;            
+            if ( $name != Card::PURPLE ){
+                $name = $card->getColor()._.$card->getAge();            
+                $cardsCount[$name]++;            
+            }
             $cardsCount[$card->getColor()]++;
         }
         return $cardsCount;
