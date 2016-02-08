@@ -296,7 +296,7 @@ class Robot extends Player{
         // when one is provided when playing the card
         $this->possibilities[$this->cardCostName($card, $type)] = $possibilities;		
         // Send off everything we just found
-        $this->send('possibilities', $pos);
+        $this->send('possibilities', array('combs' => $possibilities));
     }
     private function minCostExt( $possibilities ) {
         $min = 100;
