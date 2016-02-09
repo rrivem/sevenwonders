@@ -84,10 +84,7 @@ class SevenWonders {
 
             // select a wonder
             $wonder = $this->wonders[array_pop($wonderKeys)];
-            if ( $player->isRobot() && $wonder['name'] == "halikarnassus" ){
-                // robots don't play this wonder        
-                $wonder = $this->wonders[array_pop($wonderKeys)];
-            }
+
             $player->wonderName = $wonder['name'];
         }
 
@@ -143,18 +140,18 @@ class SevenWonders {
     }
 
     private function playCards($isDiscard = false) {
-        $this->log("All cards found");
+        $this->log("All cards found for turn ".$this->turn);
 
         // execute effects of all played cards
         foreach ($this->players as $player) {
             $data = array();
-            if ($player->leftPlayer->isPlayingCard())
+            if ($player->leftPlayer->isPlayingCard() && isset($player->leftPlayer->selectedCard) )
                 $data['left'] = $player->leftPlayer->selectedCard->json();
-            if ($player->rightPlayer->isPlayingCard())
+            if ($player->rightPlayer->isPlayingCard() && isset($player->rightPlayer->selectedCard) )
                 $data['right'] = $player->rightPlayer->selectedCard->json();
             $player->send('cardschosen', $data);
 
-            if($isDiscard and (!isset($player->state) or $player->state != Player::USINGDISCARD)) 
+            if($isDiscard && (!isset($player->state) || $player->state != Player::USINGDISCARD)) 
                 continue;
             // play both cards (if we can)
             $player->playCard($this, $player->selectedCard, $player->state,
@@ -166,7 +163,7 @@ class SevenWonders {
 
         $shouldPause = false;
         foreach ($this->players as $player) {
-            if(!isset($player->state) or $player->state != Player::USINGDISCARD or $isDiscard)
+            if(!isset($player->state) || $player->state != Player::USINGDISCARD || $isDiscard)
                 unset($player->state);
             else
                 $shouldPause = true;
@@ -182,6 +179,21 @@ class SevenWonders {
         foreach($this->players as $player){
             $points = $player->calcPoints()['total'];
             $this->log("{$player->info()} has $points points");
+        }
+        if ( $shouldPause ){
+            $shouldPause = false;
+            foreach($this->players as $player){
+                if ( isset($player->state) && $player->state == Player::USINGDISCARD ){
+                    if ( count($this->discard) > 0 ){
+                        $shouldPause = true;
+                        $tojson = function($a){ return $a->json(); };
+                        $player->send('discard', array('cards' => array_map($tojson, $this->discard)));                    
+                    } else {
+                        $this->log("{$player->info()} skipped discard");
+                        unset($player->state);
+                    }
+                } 
+            }
         }
         if(!$shouldPause){
              if ($this->turn == 6) {
@@ -210,12 +222,7 @@ class SevenWonders {
                 $this->turn++;
                 $this->rotateHands($this->age != 2);
             }
-        } else {
-            foreach($this->players as $player)
-                $player->send('hand', array('card' => array()));
         }
-
-        
     }
 
     public function onMessage(Player $user, $args){
@@ -251,9 +258,13 @@ class SevenWonders {
                     foreach($this->discard as $card)
                         if($card->getName() == $args['value'][0])
                             $foundCard = $card;
-                    if(!isset($foundCard)) break;
+                    if(!isset($foundCard)) {
+                        $this->log("{$user->info()} Card not found - ".print_r($args['value'], true));
+                        break;
+                    }
                     $user->selectedCard = $foundCard;
                     $user->pendingCost = array();
+                    $this->log("{$user->info()} chose {$foundCard->getName()} from discard");
                     $this->playCards(true);
                     break;
                 }
