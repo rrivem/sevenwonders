@@ -189,9 +189,6 @@ class Robot extends Player{
                 case "babylon":
                     $isA = true;
                     break;
-                case "halikarnassus":
-                    $isA = false;
-                    break;
                 case "olympia":
                     $isA = false;
                     break;
