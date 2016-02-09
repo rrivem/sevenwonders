@@ -86,6 +86,25 @@ class Robot extends Player{
         return true;
     }
     public function send($type, $msg) {
+        if ( $type === 'discard' ){
+            // we need to select a discard card
+            $max = -1;
+            $best = "";        
+            foreach ( $this->game()->discard as &$card ){
+                $card->value = $this->getCardValue($card, 'play', array( array() ));     
+                if ( $card->value['value'] > $max ){
+                    $max = $card->value['value'];                
+                    $best = $card->getName();
+                }                
+            } 
+            if ( $this->serverOnly){
+                $args = array(
+                    'messageType' => 'cardplay',
+                    'value' => array( $best,  "play", 0  )
+                );
+                $this->game()->onMessage($this, $args);
+            }                
+        }
         if ( $this->serverOnly ){
             return;
         }
@@ -108,7 +127,6 @@ class Robot extends Player{
         parent::setGame( $game );
 		
     }
-	
     public function sendHand() {
         // called once per turn, reset calculated card possibilities
         $this->possibilities = array();
@@ -169,7 +187,7 @@ class Robot extends Player{
         if ( $this->serverOnly ){
             switch ( $this->wonderName ){
                 case "babylon":
-                   $isA = true;
+                    $isA = true;
                     break;
                 case "halikarnassus":
                     $isA = false;
@@ -256,6 +274,8 @@ class Robot extends Player{
 			$pos['info'] = $info;
             
 		} else {
+            $stage = $this->wonder['stages'][$this->wonderStage];
+            
             if ( count($this->wonder['stages']) == 4) {
                 $vals = [ 3, 5, 5, 7, 0 ];
                 $targts = [ 1, 2, 2, 3, 4 ];
@@ -268,6 +288,12 @@ class Robot extends Player{
                     $value = 0;
                 }
                 $targetAge = $this->wonderStage+1;
+            }
+            if (isset($stage['custom']) && $stage['custom']== "discard" ){
+                if(count($this->game()->discard) == 0){
+                    // teh wonder has no value if there are not at least one discard card in the discard pile
+                    $value = 0;
+                }
             }
             $cardLeft = count($this->hand) / 2;
             
