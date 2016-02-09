@@ -287,7 +287,7 @@ class Robot extends Player{
                 $targetAge = $this->wonderStage+1;
             }
             if (isset($stage['custom']) && $stage['custom']== "discard" ){
-                if(count($this->game()->discard) == 0){
+                if(count($this->game()->discard) == 0 && count($this->hand) > 2 ){
                     // teh wonder has no value if there are not at least one discard card in the discard pile
                     $value = 0;
                 }
