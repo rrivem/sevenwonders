@@ -181,17 +181,29 @@ class Robot extends Player{
                     'value' => array( $best,  $actionMap[$action], $index  )
                 );
                 $this->game()->onMessage($this, $args);
-                if ( $this->canPlayTwo() && $this->game()->turn == 6){                    
+                if ( $this->canPlayTwo() && $this->game()->turn == 6){   
+                    $found = false;
                     foreach ( $this->hand as $card ){
                         if ( $card->getName() != $best ){
                             $best = $card->getName();
                             $index = $card->value['index'];
+                            $found = true;
                             break;                          
                         }
                     }
-                    if ( $wonderValue['value'] > $card->value['value'] && $action != "building" ){
-                        $action = "building";
-                    } else if ( $card->value['value'] <= 1) {
+                    $value = $card->value['value'];
+                    if ( !$found || $value < 0 ){
+                        // we had twice the same card
+                        $value = 0;                       
+                    }
+                    $type = 'wonder';
+                    // need to re-compute the wonder cost, as we may want to build the 3rd wonder now
+                    $wonderPossibilities = $this->calculateCost($card, $type);
+                    $this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
+                    $this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
+                    if ( $wonderValue['value'] > $value ){
+                        $action = "building";                       
+                    } else if ( $value <= 1 ) {
                         $action = "trashing";
                     } else {
                         $action = "buying";
@@ -283,7 +295,7 @@ class Robot extends Player{
             } else {
                 $minCost = $this->minCostExt($possibilities);                
                 $points -= $minCost[0]/3 * $this->costWeights['cost'];
-                $values['cost'] = $this->minCost($possibilities)/3;
+                $values['cost'] = $minCost[0]/3;
                 $pos['index'] = $minCost[1];
             }
             
@@ -332,15 +344,7 @@ class Robot extends Player{
         $pos['possibilities'] = $possibilities;
 		return $pos;
 	}
-    public function findCost(Card $card, $type) {
-        $possibilities = $this->calculateCost($card, $type);
 
-        // Save off what we just calculated so we can verify a cost strategy
-        // when one is provided when playing the card
-        $this->possibilities[$this->cardCostName($card, $type)] = $possibilities;		
-        // Send off everything we just found
-        $this->send('possibilities', array('combs' => $possibilities));
-    }
     private function minCostExt( $possibilities ) {
         $min = 100;
         $index = 0;

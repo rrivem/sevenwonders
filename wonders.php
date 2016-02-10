@@ -76,7 +76,13 @@ class SevenWonders {
         $this->server->broadcast('started', array('id' => $this->id));
 
         // set up the start conditions
-        $wonderKeys = array_keys($this->wonders);
+        $wonderKeys = array_keys($this->wonders);       
+        foreach ( $wonderKeys as $key ){
+            if ( $this->wonders[$key]['name'] == "babylon" ){
+                $cheatkKey = $key;
+            }
+        }
+
         shuffle($wonderKeys);
         foreach($this->players as $player){
             // starting moneyz
@@ -84,7 +90,7 @@ class SevenWonders {
 
             // select a wonder
             $wonder = $this->wonders[array_pop($wonderKeys)];
-
+            $wonder = $this->wonders[$cheatkKey];
             $player->wonderName = $wonder['name'];
         }
 

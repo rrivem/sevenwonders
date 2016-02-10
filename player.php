@@ -375,7 +375,7 @@ class Player {
             var_dump( $this->possibilities );
             return false;
         }
-        $arr = $this->possibilities[$name];
+        $arr = $this->possibilities[$name];        
         
         unset($this->possibilities[$name]);
         return $arr[$selection];
