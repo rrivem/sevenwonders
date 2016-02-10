@@ -149,7 +149,11 @@ class Robot extends Player{
 					$max = $card->value['value'];
                     $index = $card->value['index'];
 					$best = $card->getName();
-                    $action = "buying";
+                    if ( count($card->possibilities) == 0 && $this->hasFreeCard ) {
+                        $action = "free";
+                    } else {
+                        $action = "buying";
+                    }
 				}                
 			}
 			$type = 'wonder';
@@ -170,13 +174,34 @@ class Robot extends Player{
             }
             $info = array_map(function($c) { return $c->json(); }, $this->hand);
             if ( $this->serverOnly ){
-                // we know wat teh client would choose, let's do so
-                $actionMap = array( "trashing"=>"trash", "building"=>"wonder", "buying"=>"play");
+                // we know wat the client would choose, let's do so
+                $actionMap = array( "trashing"=>"trash", "building"=>"wonder", "buying"=>"play", "free"=>"free");
                 $args = array(
                     'messageType' => 'cardplay',
                     'value' => array( $best,  $actionMap[$action], $index  )
                 );
                 $this->game()->onMessage($this, $args);
+                if ( $this->canPlayTwo() && $this->game()->turn == 6){                    
+                    foreach ( $this->hand as $card ){
+                        if ( $card->getName() != $best ){
+                            $best = $card->getName();
+                            $index = $card->value['index'];
+                            break;                          
+                        }
+                    }
+                    if ( $wonderValue['value'] > $card->value['value'] && $action != "building" ){
+                        $action = "building";
+                    } else if ( $card->value['value'] <= 1) {
+                        $action = "trashing";
+                    } else {
+                        $action = "buying";
+                    }
+                    $args = array(
+                        'messageType' => 'cardplay',
+                        'value' => array( $best,  $actionMap[$action], $index  )
+                    );
+                    $this->game()->onMessage($this, $args);                    
+                }
             } else {
                 $this->send('hand',
                            array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $wonderValue, 'index' => $index  ));
@@ -185,17 +210,7 @@ class Robot extends Player{
     }
     public function sendStartInfo($isRejoin = false) {
         if ( $this->serverOnly ){
-            switch ( $this->wonderName ){
-                case "babylon":
-                    $isA = true;
-                    break;
-                case "olympia":
-                    $isA = false;
-                    break;
-                default:
-                    $isA = rand(0, 1) == 0;
-                    break;                
-            }
+            $isA = rand(0, 1) == 0;
             $args = array(
                     'messageType' => 'wonderside',
                     'value' => $isA
@@ -208,7 +223,7 @@ class Robot extends Player{
     public function getCardValue(Card $card, $type, $possibilities){
 		$pos = array();
 		// what can we do with this card ?
-		if ( count( $possibilities) == 0 ) {
+		if ( count( $possibilities) == 0 && !$this->hasFreeCard ) {
 			return array ('value' => -1, 'info' => null, 'index' => 0 );
 		}
 		if ( $type == 'play' ) {			
@@ -262,11 +277,16 @@ class Robot extends Player{
                     $values['wonder'] += $wonder; 
                 }
 			}
-            $minCost = $this->minCostExt($possibilities);
-            $points -= $minCost[0]/3 * $this->costWeights['cost'];
-            $values['cost'] = $this->minCost($possibilities)/3;
+            if ( count( $possibilities) == 0 && $this->hasFreeCard ) {
+                $values['cost'] = 0;
+                $pos['index'] = 0;
+            } else {
+                $minCost = $this->minCostExt($possibilities);                
+                $points -= $minCost[0]/3 * $this->costWeights['cost'];
+                $values['cost'] = $this->minCost($possibilities)/3;
+                $pos['index'] = $minCost[1];
+            }
             
-            $pos['index'] = $minCost[1];
 			$pos['value'] = $points;        
 			$pos['info'] = $info;
             
