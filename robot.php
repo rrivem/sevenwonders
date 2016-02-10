@@ -4,7 +4,7 @@ require_once('player.php');
 
 class Robot extends Player{
     
-    
+    public $wonderValue;
     protected $serverOnly = false;
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
@@ -159,10 +159,10 @@ class Robot extends Player{
 			$type = 'wonder';
 			$wonderPossibilities = $this->calculateCost($card, $type);
 			$this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
-			$wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
-			if ( $wonderValue['value'] > $max ){
-				$max = $wonderValue['value'];
-                $index = $wonderValue['index'];
+			$this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
+			if ( $this->wonderValue['value'] > $max ){
+				$max = $this->wonderValue['value'];
+                $index = $this->wonderValue['index'];
 				$action = "building";
 			}
             if ( $max <= 1 ){
@@ -210,10 +210,10 @@ class Robot extends Player{
                     // need to re-compute the wonder cost, as we may want to build the 3rd wonder now
                     $wonderPossibilities = $this->calculateCost($card, $type);
                     $this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
-                    $wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
-                    if ( $wonderValue['value'] > $value ){
+                    $this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
+                    if ( $this->wonderValue['value'] > $value ){
                         $action = "building"; 
-                        $value = $wonderValue['value'];
+                        $value = $this->wonderValue['value'];
                     }
                     if ( $value <= 1 ) {
                         $action = "trashing";
@@ -226,7 +226,7 @@ class Robot extends Player{
                 }
             } else {
                 $this->send('hand',
-                           array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $wonderValue, 'index' => $index  ));
+                           array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $this->wonderValue, 'index' => $index  ));
             }
         }
     }
@@ -245,7 +245,7 @@ class Robot extends Player{
     public function getCardValue(Card $card, $type, $possibilities){
 		$pos = array();
 		// what can we do with this card ?
-		if ( count( $possibilities) == 0 && !$this->hasFreeCard ) {
+		if ( count( $possibilities) == 0 && ( !$this->hasFreeCard || $type != 'play' ) )  {
 			return array ('value' => -1, 'info' => null, 'index' => 0 );
 		}
 		if ( $type == 'play' ) {			
