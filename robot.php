@@ -170,7 +170,17 @@ class Robot extends Player{
                 $index = 0;
             }
             if ( $action !== "buying" ){
-                $best = $names[rand(0, count($names)-1 )];
+                if( $this->wonderName == "babylon" && $this->game()->turn == 6 ){
+                    // discard the card that was not the best, in case we use it for the 7th turn
+                    foreach ( $this->hand as $card ){
+                        if ( $card->getName() != $best ){
+                            $best = $card->getName();
+                            break;
+                        }
+                    }
+                } else {
+                    $best = $names[rand(0, count($names)-1 )];
+                }
             }
             $info = array_map(function($c) { return $c->json(); }, $this->hand);
             if ( $this->serverOnly ){
