@@ -210,7 +210,7 @@ class Robot extends Player{
                     // need to re-compute the wonder cost, as we may want to build the 3rd wonder now
                     $wonderPossibilities = $this->calculateCost($card, $type);
                     $this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
-                    $this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
+                    $wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
                     if ( $wonderValue['value'] > $value ){
                         $action = "building"; 
                         $value = $wonderValue['value'];
