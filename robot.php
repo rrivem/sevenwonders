@@ -201,6 +201,7 @@ class Robot extends Player{
                     $best = $card->getName();
                     $index = $card->value['index'];
                     $value = $card->value['value'];
+                    $action = "buying";
                     if ( !$found || $value < 0 ){
                         // we had twice the same card
                         $value = 0;                       
@@ -211,12 +212,12 @@ class Robot extends Player{
                     $this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
                     $this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
                     if ( $wonderValue['value'] > $value ){
-                        $action = "building";                       
-                    } else if ( $value <= 1 ) {
-                        $action = "trashing";
-                    } else {
-                        $action = "buying";
+                        $action = "building"; 
+                        $value = $wonderValue['value'];
                     }
+                    if ( $value <= 1 ) {
+                        $action = "trashing";
+                    } 
                     $args = array(
                         'messageType' => 'cardplay',
                         'value' => array( $best,  $actionMap[$action], $index  )
