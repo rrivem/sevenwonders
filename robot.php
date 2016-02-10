@@ -168,16 +168,15 @@ class Robot extends Player{
             if ( $max <= 1 ){
                 $action = "trashing";
                 $index = 0;
-            }
+            }            
             if ( $action !== "buying" ){
                 if( $this->wonderName == "babylon" && $this->game()->turn == 6 ){
                     // discard the card that was not the best, in case we use it for the 7th turn
-                    foreach ( $this->hand as $card ){
-                        if ( $card->getName() != $best ){
-                            $best = $card->getName();
-                            break;
-                        }
-                    }
+                    if ( $names[0] == $best && count( $names ) > 1 ){
+                        $best = $names[1];
+                    } else {
+                        $best = $names[0];
+                    }                    
                 } else {
                     $best = $names[rand(0, count($names)-1 )];
                 }
@@ -194,13 +193,13 @@ class Robot extends Player{
                 if ( $this->canPlayTwo() && $this->game()->turn == 6){   
                     $found = false;
                     foreach ( $this->hand as $card ){
-                        if ( $card->getName() != $best ){
-                            $best = $card->getName();
-                            $index = $card->value['index'];
+                        if ( $card->getName() != $best ){                            
                             $found = true;
                             break;                          
                         }
                     }
+                    $best = $card->getName();
+                    $index = $card->value['index'];
                     $value = $card->value['value'];
                     if ( !$found || $value < 0 ){
                         // we had twice the same card
