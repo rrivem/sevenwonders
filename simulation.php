@@ -4,39 +4,6 @@
 // Set date to avoid errors
 date_default_timezone_set("America/New_York");
 
-function gentoken() {
-    $chars = "abcdefghijklmnopqrstuvwxyz1234567890";
-    $string = "";
-    $nchars = strlen($chars);
-    for ($i = 0; $i < 30; $i++)
-        $string .= $chars[mt_rand(0, $nchars - 1)];
-    return $string;
-}
-function sortVictory($a, $b) {
-    $totA = array_sum( $a->victories );
-    $totB = array_sum( $b->victories );
-    if ( $totA == 0) return -1;
-    if ( $totB == 0) return 1;
-    $ptA = $a->victories[0]*4+$a->victories[1]*2+$a->victories[3];
-    $ptB = $b->victories[0]*4+$b->victories[1]*2+$b->victories[3];                
-    return $ptA/$totA>$ptB/$totB?1:-1;
-}
-function sortPoints($a, $b) {
-    $totA = array_sum( $a->victories );
-    $totB = array_sum( $b->victories );
-    if ( $totA == 0) return -1;
-    if ( $totB == 0) return 1;
-    $ptA = $a->totalScore;
-    $ptB = $b->totalScore;                
-    return $ptA/$totA>$ptB/$totB?1:-1;
-}
-function sortMedian($a, $b) {
-    if ( count( $a->historicalScores) == 0 ) return -1;
-    if ( count( $b->historicalScores) == 0  ) return 1;
-    $ptA = $a->medianScore();
-    $ptB = $b->medianScore();
-    return $ptA>$ptB ? 1 : -1 ;
-}
 // Run from command prompt > php demo.php
 require_once("wonders.php");
 require_once("player.php");
@@ -45,14 +12,14 @@ require_once("robot.php");
 class Simulation {
     public $nbSimul = 10000;
     public $nbPlayers = 3;
-    
+    public $debug = false;
     // random, herd, group
     public $simulationType = "group";
     public $herdSize = 24;
     
     // for selection
     public $rounds = 240; // number of round before a selection is made
-    public $herdChange = 6; // number of individuals that are changed in the herd
+    public $herdChange = 8; // number of individuals that are changed in the herd
     public $newRobotType = ["mute", "mute" ]; // random, clone, mute, mate, new, array is uspported
     
     public $loadHerd = false;
@@ -68,19 +35,19 @@ class Simulation {
     protected $wonderStats = array(
         'positions' => array(),
         'details' => array(),
-        'score' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ) ),
+        'score' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ) ),
         'weights' => array(),
-        'cards' => array( 'all' => array( 'all' => array() ), 'win'=>array( 'all' => array() )),
-        'colors' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ))
+        'cards' => array( 'all' => array( '_all_' => array() ), 'win'=>array( '_all_' => array() )),
+        'colors' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ))
         
     );
     protected $playerStats= array(
         'positions' => array(),
         'details' => array(),
-        'score' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ) ),
+        'score' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ) ),
         'weights' => array(),
-        'cards' => array( 'all' => array( 'all' => array() ), 'win'=>array( 'all' => array() )),
-        'colors' => array( 'all' => array(  'all' => array() ), 'win'=>array( 'all' => array() ))
+        'cards' => array( 'all' => array( '_all_' => array() ), 'win'=>array( '_all_' => array() )),
+        'colors' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ))
     );
     protected function addHist( $src, &$dst ){
         foreach ( $src as $color => $point ){
@@ -105,17 +72,17 @@ class Simulation {
             $where['score']['win'][$name] = array_fill(0, 30, 0 );
             $where['score']['win'][$name]['vals'] = array();
         }
-        if ( !isset($where['score']['win']['all'])){
-            $where['score']['win']['all'] = array_fill(0, 30, 0 );
-            $where['score']['win']['all']['vals'] = array();
+        if ( !isset($where['score']['win']['_all_'])){
+            $where['score']['win']['_all_'] = array_fill(0, 30, 0 );
+            $where['score']['win']['_all_']['vals'] = array();
         }
         if ( !isset($where['score']['all'][$name])){
             $where['score']['all'][$name] = array_fill(0, 30, 0 );
             $where['score']['all'][$name]['vals'] = array();
         }
-        if ( !isset($where['score']['all']['all'])){
-            $where['score']['all']['all'] = array_fill(0, 30, 0 );
-            $where['score']['all']['all']['vals'] = array();
+        if ( !isset($where['score']['all']['_all_'])){
+            $where['score']['all']['_all_'] = array_fill(0, 30, 0 );
+            $where['score']['all']['_all_']['vals'] = array();
         }
         if ( !isset($where['color'][$name])){
             $where['color'][$name] = array();
@@ -134,13 +101,13 @@ class Simulation {
             
             $where['score']['win'][$name][$histscore]++;
             $where['score']['win'][$name]['vals'][] = $score;
-            $where['score']['win']['all'][$histscore]++;
-            $where['score']['win']['all']['vals'][] = $score;
+            $where['score']['win']['_all_'][$histscore]++;
+            $where['score']['win']['_all_']['vals'][] = $score;
             
             $this->addHist( $points, $where['colors']['win'][$name] );
             $this->addHist( $cards, $where['cards']['win'][$name] );          
-            $this->addHist( $points, $where['colors']['win']['all'] );
-            $this->addHist( $cards, $where['cards']['win']['all'] );          
+            $this->addHist( $points, $where['colors']['win']['_all_'] );
+            $this->addHist( $cards, $where['cards']['win']['_all_'] );          
         } else {                                
             if ( !isset($where['details'][$winner][$name])){
                 $where['details'][$winner][$name] = 0;
@@ -149,18 +116,18 @@ class Simulation {
         }                        
         $where['score']['all'][$name][$histscore]++;        
         $where['score']['all'][$name]['vals'][] = $score;        
-        $where['score']['all']['all'][$histscore]++;        
-        $where['score']['all']['all']['vals'][] = $score;
+        $where['score']['all']['_all_'][$histscore]++;        
+        $where['score']['all']['_all_']['vals'][] = $score;
         
         $where['weights'][$name] = $player->getCostWeights();
         $this->addHist( $points, $where['colors']['all'][$name] );
         $this->addHist( $cards, $where['cards']['all'][$name] );
-        $this->addHist( $points, $where['colors']['all']['all'] );
-        $this->addHist( $cards, $where['cards']['all']['all'] );
+        $this->addHist( $points, $where['colors']['all']['_all_'] );
+        $this->addHist( $cards, $where['cards']['all']['_all_'] );
         
     }
     public function broadcast( $type, $msg, $exclude=null ){     
-        echo $type ."\n";
+        echo $this->game->id. ": ".$type ."\n";
         if ( $type === 'scores' ){
             // end of the game  
             
@@ -270,7 +237,8 @@ class Simulation {
             }
             $totScore = array_sum( $score[$name] );
             $average = array_sum( $score[$name]['vals'] ) / count($score[$name]['vals']);
-            $median = sort( $score[$name]['vals'] )[floor(count($score[$name]['vals'])/2)];
+            sort( $score[$name]['vals'] );
+            $median = $score[$name]['vals'][floor(count($score[$name]['vals'])/2)];
             $stats .= $name;
             $stats .= ",".round($average*100)/100;
             $stats .= ",".$median;
@@ -364,9 +332,17 @@ class Simulation {
         
         $stats = "";
         $stats .= "Position\n"; 
+        ksort( $this->wonderStats['positions'] );
         $stats .= $this->dumpPosition ( $this->wonderStats['positions'], $csv );
         
         if ( $csv ){
+            ksort( $this->wonderStats['details'] );
+            ksort( $this->wonderStats['score']['all'] );
+            ksort( $this->wonderStats['score']['win'] );
+            ksort( $this->wonderStats['colors']['all'] );
+            ksort( $this->wonderStats['colors']['win'] );
+            ksort( $this->wonderStats['cards']['all'] );
+            ksort( $this->wonderStats['cards']['win'] );
             $stats .= "\nDetails\n"; 
             $stats .= $this->dumpDetails ( $this->wonderStats['details'] );
             
@@ -451,11 +427,7 @@ class Simulation {
                 for ( $i=0; $i<$this->herdSize; $i++){
                     if ( isset( $herdData[$i]) ){
                         $robot = new Robot(gentoken(), $i, true, $herdData[$i]['weights'] );
-                        if ( $this->simulationType === "herd" ){
-                            $robot->setName( $herdData[$i]['name']);
-                        } else {
-                            $robot->setName( "-" . $herdData[$i]['name']);
-                        }
+                        $robot->setName( $herdData[$i]['name']);                        
                     } else {
                         if ( $i == $this->herdSize-1 ){
                             $robot = new Robot(gentoken(), $i, true, true);
@@ -476,10 +448,14 @@ class Simulation {
             }
         }
         $idx = 0;
+        
+        $filename = "stats/".$this->statsFilename . $this->nbPlayers .".csv";
         while ( $this->nbSimul-- ){
             $this->startGame( $idx++ );
+            if ( $this->nbSimul % 100 == 0 ){
+                file_put_contents(substr($filename,0,-4).".tmp.csv", $this->dumpStats( ));
+            }
         }
-        $filename = "stats/".$this->statsFilename . count( $this->game->players ) .".csv";
         file_put_contents($filename, $this->dumpStats( ));
         
         $herdData = array();
@@ -497,10 +473,10 @@ class Simulation {
     }
     public function startGame( $gameIdx ){
         $this->game = new SevenWonders();
-        $this->game->debug = false;
+        $this->game->debug = $this->debug;
         $this->game->maxplayers = $this->nbPlayers;
         $this->game->name = "simulation";
-        $this->game->id = gentoken();
+        $this->game->id = $gameIdx;
         $this->game->server = $this;
         
         if ( $this->herdChange > 0 ){
@@ -587,6 +563,41 @@ class Simulation {
         }
 
     } 
+}
+
+
+function gentoken() {
+    $chars = "abcdefghijklmnopqrstuvwxyz1234567890";
+    $string = "";
+    $nchars = strlen($chars);
+    for ($i = 0; $i < 30; $i++)
+        $string .= $chars[mt_rand(0, $nchars - 1)];
+    return $string;
+}
+function sortVictory($a, $b) {
+    $totA = array_sum( $a->victories );
+    $totB = array_sum( $b->victories );
+    if ( $totA == 0) return -1;
+    if ( $totB == 0) return 1;
+    $ptA = $a->victories[0]*4+$a->victories[1]*2+$a->victories[3];
+    $ptB = $b->victories[0]*4+$b->victories[1]*2+$b->victories[3];                
+    return $ptA/$totA>$ptB/$totB?1:-1;
+}
+function sortPoints($a, $b) {
+    $totA = array_sum( $a->victories );
+    $totB = array_sum( $b->victories );
+    if ( $totA == 0) return -1;
+    if ( $totB == 0) return 1;
+    $ptA = $a->totalScore;
+    $ptB = $b->totalScore;                
+    return $ptA/$totA>$ptB/$totB?1:-1;
+}
+function sortMedian($a, $b) {
+    if ( count( $a->historicalScores) == 0 ) return -1;
+    if ( count( $b->historicalScores) == 0  ) return 1;
+    $ptA = $a->medianScore();
+    $ptB = $b->medianScore();
+    return $ptA>$ptB ? 1 : -1 ;
 }
 
 if ( !file_exists("stats")){
