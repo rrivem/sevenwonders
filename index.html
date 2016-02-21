@@ -57,8 +57,10 @@
                             "joinGame('" + args.id + "')\">" + args.name +
                             ' - ' + args.creator + '</a></li>');
                         }
-                        // roboit join game automatically 
-                        joinGame( args.id );
+                        // robot join game automatically 
+                        if ( getParameterByName( "robot" ) ){
+                            joinGame( args.id );
+                        }
                         break;
 
                     case 'newplayer':
