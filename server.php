@@ -41,7 +41,7 @@ class WonderServer implements IWebSocketServerObserver{
                 $u->send($type, $msg);
     }
 
-    public function onMessage(IWebSocketConnection $conn, IWebSocketMessage $msg){
+    public function onMessage(IWebSocketConnection $conn, IWebSocketMessage $msg){        
         $arr = json_decode($msg->getData(), true);
         // If this is a new websocket connection, handle the user up front
         if ($arr['messageType'] == 'myid') {
@@ -115,9 +115,8 @@ class WonderServer implements IWebSocketServerObserver{
                     $user = new Robot(gentoken(), $r, true);
                     $game->addPlayer($user);
                 }
-                $game->maxplayers -= $nbRobots;
                 
-                if ($game->maxplayers > 1)
+                if ($game->maxplayers - $nbRobots > 1)
                     $this->broadcast('newgame',
                                      array('name' => $game->name,
                                            'creator' => $game->creator->name(),
