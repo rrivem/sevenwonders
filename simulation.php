@@ -389,8 +389,9 @@ class Simulation {
                 $stats .= sprintf(",%3d", round($victory/$totalPlay*100));
             }
             $stats .= sprintf(",%3d ",$player->totalScore/$totalPlay);
+            $stats .= sprintf(",%5d ",$totalPlay);            
             $stats .= ",".implode(", ", $player->getCostWeights( ));
-            $stats .= ",$totalPlay\n";
+            $stats .= "\n";
         }
         if ( $csv ){
             $stats .= "\nDetails\n"; 
@@ -424,12 +425,16 @@ class Simulation {
             if ( $this->loadHerd !== false  ){
                 $herdFilename = "stats/".$this->loadHerd .".json";
                 $herdData = json_decode(file_get_contents($herdFilename), true);  
+                $needUNit=1;
                 for ( $i=0; $i<$this->herdSize; $i++){
                     if ( isset( $herdData[$i]) ){
                         $robot = new Robot(gentoken(), $i, true, $herdData[$i]['weights'] );
-                        $robot->setName( $herdData[$i]['name']);                        
+                        $robot->setName( $herdData[$i]['name']);      
+                        if ( $herdData[$i]['name'] == 'unit' ){
+                            $needUNit=0;
+                        }
                     } else {
-                        if ( $i == $this->herdSize-1 ){
+                        if ( $i == $this->herdSize-$needUNit ){
                             $robot = new Robot(gentoken(), $i, true, true);
                             $robot->setName("unit");
                         } else {
