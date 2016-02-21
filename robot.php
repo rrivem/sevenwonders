@@ -214,6 +214,7 @@ class Robot extends Player{
                     if ( $this->wonderValue['value'] > $value ){
                         $action = "building"; 
                         $value = $this->wonderValue['value'];
+                        $index = $this->wonderValue['index'];
                     }
                     if ( $value <= 1 ) {
                         $action = "trashing";
