@@ -65,6 +65,28 @@
 		"build": 2.2
 	}
 }, {
+	"name": "3p_p_e54c",
+	"weights": {
+		"military": 3,
+		"points": 2.3,
+		"coins": 3.7,
+		"cards": 3,
+		"wonder": 3.7,
+		"cost": 5.1,
+		"build": 2.1
+	}
+}, {
+	"name": "3p_p_e54d",
+	"weights": {
+		"military": 1.3,
+		"points": 3.3,
+		"coins": 4.3,
+		"cards": 3.4,
+		"wonder": 3.9,
+		"cost": 4.6,
+		"build": 2.7
+	}
+}, {
 	"name": "3p_w_e49",
 	"weights": {
 		"military": 3.1,
@@ -142,6 +164,17 @@
         "build":1.5
     }
 }, {
+    "name":"4p_p_r49b",
+    "weights":{
+        "military":1.7,
+        "points":1.3,
+        "coins":3.1,
+        "cards":2.1,
+        "wonder":4,
+        "cost":1.5,
+        "build":1.5
+    }
+}, {
     "name":"5p_p_r51",
     "weights":{
         "military":1.1,
@@ -185,5 +218,38 @@
         "cost":2.6,
         "build":1.9
     }
+}, {
+    "name": "4p_p_m51",
+    "weights": {
+		"military": 3.4,
+		"points": 2.5,
+		"coins": 2.8,
+		"cards": 3.3,
+		"wonder": 3.9,
+		"cost": 3.3,
+		"build": 1.7
+	}
+}, {
+    "name": "4p_p_2a",
+	"weights": {
+		"military": 1.3,
+		"points": 1,
+		"coins": 1.7,
+		"cards": 1,
+		"wonder": 3.9,
+		"cost": 1,
+		"build": 2.7
+	}
+}, {
+	"name": "4p_p_2b",
+	"weights": {
+		"military": 1.3,
+		"points": 3.3,
+		"coins": 4,
+		"cards": 3.4,
+		"wonder": 3.9,
+		"cost": 4.6,
+		"build": 2.7
+	}
 }
 ]
