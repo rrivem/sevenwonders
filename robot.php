@@ -130,7 +130,7 @@ class Robot extends Player{
     public function sendHand() {
         // called once per turn, reset calculated card possibilities
         $this->possibilities = array();
-        if(isset($this->hand)){
+        if(isset($this->hand) && count($this->hand)>0 ){
 			
             $action = "";
 			$max = 0;
@@ -189,42 +189,7 @@ class Robot extends Player{
                     'messageType' => 'cardplay',
                     'value' => array( $best,  $actionMap[$action], $index  )
                 );
-                $this->game()->onMessage($this, $args);
-                if ( $this->canPlayTwo() && $this->game()->turn == 6){   
-                    $found = false;
-                    foreach ( $this->hand as $card ){
-                        if ( $card->getName() != $best ){                            
-                            $found = true;
-                            break;                          
-                        }
-                    }
-                    $best = $card->getName();
-                    $index = $card->value['index'];
-                    $value = $card->value['value'];
-                    $action = "buying";
-                    if ( !$found || $value < 0 ){
-                        // we had twice the same card
-                        $value = 0;                       
-                    }
-                    $type = 'wonder';
-                    // need to re-compute the wonder cost, as we may want to build the 3rd wonder now
-                    $wonderPossibilities = $this->calculateCost($card, $type);
-                    $this->possibilities[$this->cardCostName($card, $type)] = $wonderPossibilities;				
-                    $this->wonderValue = $this->getCardValue($card, $type, $wonderPossibilities);
-                    if ( $this->wonderValue['value'] > $value ){
-                        $action = "building"; 
-                        $value = $this->wonderValue['value'];
-                        $index = $this->wonderValue['index'];
-                    }
-                    if ( $value <= 1 ) {
-                        $action = "trashing";
-                    } 
-                    $args = array(
-                        'messageType' => 'cardplay',
-                        'value' => array( $best,  $actionMap[$action], $index  )
-                    );
-                    $this->game()->onMessage($this, $args);                    
-                }
+                $this->game()->onMessage($this, $args);                
             } else {
                 $this->send('hand',
                            array('age' => $this->game()->age, 'cards' => $info, 'action' => $action, 'selected' => $best, 'wonder' => $this->wonderValue, 'index' => $index  ));

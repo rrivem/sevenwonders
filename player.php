@@ -39,10 +39,7 @@ class Player {
     public $canHaveFreeCard;    // state for olympia's free card
     public $hasFreeCard;
 
-    public $canPlayTwoBuilt;    // state for babylon's play2 stage
-    public $secondPending;      // second card being played
-    public $secondState;        // what's happening to the second card
-    public $secondCost;         // pending cost of the second card
+    public $canPlayTwoBuilt;    // state for babylon's play2 stage   
 
     public $canStealGuild;      // olympia's guild steal (b side)
 
@@ -279,8 +276,10 @@ class Player {
         $this->send("startinfo", $startInfo);
         if ($this->hasFreeCard)
             $this->getFreeCard();
+        /*
         if ($this->canPlayTwoBuilt)
-            $this->send('canplay2', '');
+            $this->send('canplay2', '');         
+        */
     }
 
     public function rejoinGame() {
@@ -409,7 +408,7 @@ class Player {
                 break;
             case 'play2':    // babylon's play both cards at the end of a hand
                 $this->canPlayTwoBuilt = true;
-                $this->send('canplay2', '');
+                //$this->send('canplay2', '');
                 break;
             case 'discount': // olympia's discount COWS for both L/R
                 $resource = new Resource(false, false);
@@ -495,10 +494,6 @@ class Player {
         // With babylon's play2 wonder stage, you've either built it in the past
         // so you can play two, or you are building it currently, enabling
         // yourself to play two cards.
-        return $this->canPlayTwoBuilt ||
-              (isset($this->state) &&
-               $this->state == Player::BUILDING &&
-               isset($this->wonder['stages'][$this->wonderStage]['custom']) &&
-               $this->wonder['stages'][$this->wonderStage]['custom'] == 'play2');
+        return $this->canPlayTwoBuilt;
     }
 }

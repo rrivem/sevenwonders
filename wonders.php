@@ -76,7 +76,7 @@ class SevenWonders {
         $this->server->broadcast('started', array('id' => $this->id));
 
         // set up the start conditions
-        $wonderKeys = array_keys($this->wonders);       
+        $wonderKeys = array_keys($this->wonders);   
         shuffle($wonderKeys);
         foreach($this->players as $player){
             // starting moneyz
@@ -131,9 +131,11 @@ class SevenWonders {
         $last = $neighbor->hand;
         do {
             $player = $moveLeft ? $neighbor->leftPlayer : $neighbor->rightPlayer;
-            $tmp = $last;
-            $last = $player->hand;
-            $player->hand = $tmp;
+            if ( $this->turn != 7 ){                
+                $tmp = $last;
+                $last = $player->hand;
+                $player->hand = $tmp;
+            }
             $player->sendHand();
             $neighbor = $player;
         } while($neighbor != $this->players[0]);
@@ -141,7 +143,7 @@ class SevenWonders {
 
     private function playCards($isDiscard = false) {
         $this->log("All cards found for turn ".$this->turn);
-
+        $nbTurn = 6;
         // execute effects of all played cards
         foreach ($this->players as $player) {
             $data = array();
@@ -150,15 +152,16 @@ class SevenWonders {
             if ($player->rightPlayer->isPlayingCard() && isset($player->rightPlayer->selectedCard) )
                 $data['right'] = $player->rightPlayer->selectedCard->json();
             $player->send('cardschosen', $data);
-
+            if ($this->turn == 7 && !$player->canPlayTwo() ){
+                continue;
+            }
             if($isDiscard && (!isset($player->state) || $player->state != Player::USINGDISCARD)) 
                 continue;
-            // play both cards (if we can)
             $player->playCard($this, $player->selectedCard, $player->state,
-                              $player->pendingCost);
-            if (isset($player->secondState))
-                $player->playCard($this, $player->secondPending,
-                                  $player->secondState, $player->secondCost);
+                              $player->pendingCost);  
+            if ( $player->canPlayTwo() ){
+                $nbTurn = 7;
+            }
         }
 
         $shouldPause = false;
@@ -168,12 +171,9 @@ class SevenWonders {
             else
                 $shouldPause = true;
             unset($player->selectedCard);
-            unset($player->pendingCost);
-            unset($player->secondState);
-            unset($player->secondPending);
-            unset($player->secondCost);
+            unset($player->pendingCost);            
 
-            if ($this->turn == 6 && count($player->hand) > 0)
+            if ($this->turn == 6 && count($player->hand) > 0 && !$player->canPlayTwo() )
                 $this->discard[] = array_pop($player->hand);
         }
         foreach($this->players as $player){
@@ -196,7 +196,7 @@ class SevenWonders {
             }
         }
         if(!$shouldPause){
-             if ($this->turn == 6) {
+             if ($this->turn == $nbTurn ) {
                 // go into a new age
                 $this->log("Ending age {$this->age}");
 
@@ -220,7 +220,7 @@ class SevenWonders {
                 // change hands and start a new turn
                 $this->log("Ending turn " . $this->turn);
                 $this->turn++;
-                $this->rotateHands($this->age != 2);
+                $this->rotateHands($this->age != 2);                
             }
         }
     }
@@ -236,18 +236,7 @@ class SevenWonders {
                     unset($user->state);
                     unset($user->selectedCard);
                     unset($user->pendingCost);
-                }
-
-                // If you ignored the first card, then we have to force ignoring
-                // the second card (maybe first enabled second). Otherwise we
-                // only need to ignore the second card if it's the actual card
-                if (isset($user->secondState) &&
-                    ($user->secondPending->getName() == $card ||
-                     !isset($user->state))) {
-                    unset($user->secondState);
-                    unset($user->secondPending);
-                    unset($user->secondCost);
-                }
+                }               
                 break;
 
             case 'cardplay':
@@ -269,8 +258,7 @@ class SevenWonders {
                     break;
                 }
 
-                if (isset($user->state) &&
-                    ($this->turn != 6 || !$user->canPlayTwo() || isset($user->secondState)))
+                if (isset($user->state))
                 {
                     $this->log("{$user->info()} Skip - ".print_r($user->state, true));
                     break;
@@ -314,10 +302,6 @@ class SevenWonders {
                     $user->state = $state;
                     $user->selectedCard = $foundCard;
                     $user->pendingCost = $cost;
-                } else {
-                    $user->secondState = $state;
-                    $user->secondPending = $foundCard;
-                    $user->secondCost = $cost;
                 }
                 // if everyone's played a card, execute cards and redeal/new turn
                 if ($this->finishedChoosing())
@@ -396,12 +380,9 @@ class SevenWonders {
     private function finishedChoosing() {
         $count = 0;
         foreach ($this->players as $player) {
-            if (!isset($player->state))
+            if ( !isset($player->state) && ( $this->turn != 7 || $player->canPlayTwo() ) )
                 continue;
-            if ($this->turn == 6 && $player->canPlayTwo() &&
-                !isset($player->secondState))
-                continue;
-            $count++;
+            $count++;                      
         }
         return $count == count($this->players);
     }
