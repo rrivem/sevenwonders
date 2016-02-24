@@ -15,7 +15,6 @@ var SevenWonders = function(socket, args){
     this.cardWidth = 123;
     this.cardHeight = 190;
     this.hasfree = false; // has a free card from olympia's wonder
-    this.hastwo = false;  // can play second card from babylon's wonder
     this.scale = 1;
     this.gameDiv = $('#game');
 
@@ -399,11 +398,7 @@ SevenWonders.prototype = {
     // resetHighlight = user canceled that action, so ignore it
     resetHighlight: function(){
         var hand = $('.card:not(.played)');
-        // If we can play the last two cards, don't actually reset the highlight
-        // on the last card
-        if (this.hastwo && hand.length == 2)
-            return;
-
+        
         var old = $('.highlighted');
         if (old.length > 0) {
             this.send({card: old.find('h1').text()}, 'cardignore')
@@ -824,11 +819,7 @@ SevenWonders.prototype = {
             case 'freecard':
                 this.hasfree = args.hasfree;
                 break;
-
-            case 'canplay2':
-                this.hastwo = true;
-                break;
-
+           
             case 'discard':
                 if(args.cards != null && args.cards.length > 0){
                     this.showCardSelect(args, true);
