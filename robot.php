@@ -199,6 +199,15 @@ class Robot extends Player{
     public function getCardValue(Card $card, $type, $possibilities){
 		$pos = array();
 		// what can we do with this card ?
+        
+        if ( $type == 'play' )  {
+            // robot can never play a card that it has already
+            foreach ($this->cardsPlayed as $cardPlayed){
+                if ($cardPlayed->getName() == $card->getName()){
+                    return array ('value' => -1, 'info' => null, 'index' => 0 );
+                }
+            }
+        }        
 		if ( count( $possibilities) == 0 && ( !$this->hasFreeCard || $type != 'play' ) )  {
 			return array ('value' => -1, 'info' => null, 'index' => 0 );
 		}
