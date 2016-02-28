@@ -10,22 +10,23 @@ require_once("player.php");
 require_once("robot.php");
 
 class Simulation {
-    public $nbSimul = 10000;
-    public $nbPlayers = 3;
+    public $nbSimul = 1000;
+    public $nbPlayers = 5;
     public $debug = false;
     // random, herd, group
     public $simulationType = "group";
-    public $herdSize = 24;
+    public $herdSize = 25;
     
     // for selection
     public $rounds = 240; // number of round before a selection is made
     public $herdChange = 8; // number of individuals that are changed in the herd
     public $newRobotType = ["mute", "mute" ]; // random, clone, mute, mate, new, array is uspported
     
-    public $loadHerd = false;
+    public $loadHerd = "../cards/robots";
     public $dataFilename = "game_info";
     public $statsFilename = "game_stats";
     public $herdFilename = "herd";
+    public $wonderStatsFilename = "wonder";
     
     public $sortFunc = "sortPoints";
     
@@ -38,8 +39,8 @@ class Simulation {
         'score' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ) ),
         'weights' => array(),
         'cards' => array( 'all' => array( '_all_' => array() ), 'win'=>array( '_all_' => array() )),
-        'colors' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() ))
-        
+        'colors' => array( 'all' => array(  '_all_' => array() ), 'win'=>array( '_all_' => array() )),
+        'bestcards' => array()
     );
     protected $playerStats= array(
         'positions' => array(),
@@ -60,6 +61,34 @@ class Simulation {
                 $dst[$color][$point]++;
             }
         }
+    }
+    protected function addWonderStats( &$where, $name, $score, $pos, $winner, $playerData ){    
+        
+        if ( !isset($where['bestcards'][$name]) ){
+            $where['bestcards'][$name] = array();
+        }
+        $bestcards = &$where['bestcards'][$name];
+        $last = array_pop($bestcards);
+        if ( $last === null || $score > $last['score'] || count( $bestcards ) < 9 ){
+            $player = $playerData[0];
+            $points = $playerData[1];
+            $cards = array( 
+                'score' => $score,
+                'info' => $player->getPublicInfo( true ),
+                'points' => $points
+            );
+            $index = 0;
+            while ( $index < count( $bestcards ) && $score < $bestcards[$index]['score']){
+               $index++; 
+            }
+            array_splice( $bestcards, $index, 0, array( $cards ) );
+        }         
+        if ( $last !== null && count( $bestcards ) < 10 ){
+            array_push($bestcards, $last);
+        }
+               
+        return $this->addStats( $where, $name, $score, $pos, $winner, $playerData );
+        
     }
     protected function addStats( &$where, $name, $score, $pos, $winner, $playerData ){        
         $player = $playerData[0];
@@ -177,7 +206,7 @@ class Simulation {
                 if ( $pos == 0 ){
                     $winner = $name;
                 }                
-                $this->addStats( $this->wonderStats, $name, $score, $pos, $winner, $winnersData[$name] );                
+                $this->addWonderStats( $this->wonderStats, $name, $score, $pos, $winner, $winnersData[$name] );                
                 $pos++;
             } 
             
@@ -473,8 +502,10 @@ class Simulation {
             );
         }   
         $herdFilename = "stats/".$this->herdFilename .".json";
-        file_put_contents($herdFilename, json_encode( $herdData ));
+        file_put_contents($herdFilename, json_encode( $herdData, JSON_PRETTY_PRINT ));
         
+        $herdFilename = "stats/".$this->wonderStatsFilename . $this->nbPlayers .".json";
+        file_put_contents($herdFilename, json_encode( $this->wonderStats['bestcards'], JSON_PRETTY_PRINT ));
     }
     public function startGame( $gameIdx ){
         $this->game = new SevenWonders();
@@ -564,6 +595,11 @@ class Simulation {
             } else if ( $this->simulationType === "group" ){                
                 $user = array_pop( $this->herdSelection[$r] );
             } 
+            if ( $user->game() ){
+                //Something is strange player is still in a game, let's leave the game to avoid getting an error.
+                echo "Player ".$user->name()." still in a game\n";
+                $user->quitGame();
+            }
             $this->game->addPlayer($user);
         }
 

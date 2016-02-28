@@ -87,11 +87,13 @@ class Player {
     public function isRobot() {
         return false;
     }
-    public function getPublicInfo(){
+    public function getPublicInfo( $short = false){
         return array(
             'id' => $this->_id,
             'name' => $this->_name,
-            'cards' => array_map(function($c) { return $c->json(); }, $this->cardsPlayed),
+            'cards' => $short ? 
+                            array_map(function($c) { return $c->json( true ); }, $this->cardsPlayed) :
+                            array_map(function($c) { return $c->json(); }, $this->cardsPlayed),
             'coins' => $this->coins,
             'wonder' => array("name" => $this->wonderName,
                               "stage" => $this->wonderStage,

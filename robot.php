@@ -110,19 +110,7 @@ class Robot extends Player{
         }
         return parent::send($type, $msg);
     }
-    public function getPublicInfo(){
-        return array(
-            'id' => $this->_id,
-            'name' => $this->_name,
-            'cards' => array_map(function($c) { return $c->json(); }, $this->cardsPlayed),
-            'coins' => $this->coins,
-            'wonder' => array("name" => $this->wonderName,
-                              "stage" => $this->wonderStage,
-                              "side" => $this->wonderSide),
-            'military' => $this->military->json()
-        );
-    }
-
+    
     public function setGame($game) {
         parent::setGame( $game );
 		

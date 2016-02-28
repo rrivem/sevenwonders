@@ -412,14 +412,22 @@ class Card {
         return 0;
     }
 
-    public function json() {
-        return array(
-            'name' => $this->getName(),
-            'color' => $this->getColor(),
-			'value' => $this->value['value'],
-			'info' => $this->value['info'],
-			'possibilities' => $this->possibilities
-        );
+    public function json( $short = false ) {
+        
+        if ( $short ){
+            return array(
+                'name' => $this->getName(),
+                'color' => $this->getColor()                
+            );
+        } else {
+            return array(
+                'name' => $this->getName(),
+                'color' => $this->getColor(),
+                'value' => $this->value['value'],
+                'info' => $this->value['info'],
+                'possibilities' => $this->possibilities
+            );
+        }
     }
 }
 
