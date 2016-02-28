@@ -2,7 +2,7 @@ var WonderBoard = function(args){
     this.name = args.name;
     this.coins = args.coins || 0;
     this.game = args.game;
-    this.wonderSide = args.wonderside || 'a';
+    this.wonderSide = args.wonderside || 'A';
     this.wonderStage = 0;
 
     this.wonderDiv = $('<div class="wonderBoard"></div>');
@@ -112,9 +112,9 @@ WonderBoard.prototype = {
         var check = $('<div class="check stage' + this.wonderStage + '"></div>');
         this.wonderDiv.append(check);
         var offset = 48 + 240 * (this.wonderStage - 1);
-        if(this.name == "gizah" && this.wonderSide == 'b'){
+        if(this.name == "gizah" && this.wonderSide == 'B'){
             offset = this.wonderStage == 1 ? 3 : 208 * (this.wonderStage - 1);
-        } else if(this.name == "rhodos" && this.wonderSide == 'b'){
+        } else if(this.name == "rhodos" && this.wonderSide == 'B'){
             offset = 283 + 240 * (this.wonderStage - 1);
         }
         check.css('left', offset);

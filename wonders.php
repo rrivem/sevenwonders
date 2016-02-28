@@ -322,7 +322,7 @@ class SevenWonders {
 
             case 'wonderside':
                 if($this->wondersChosen) break;
-                $side = $args['value'] == true ? 'a' : 'b';
+                $side = $args['value'] == true ? 'A' : 'B';
                 $user->wonderSide = $side;
                 foreach($this->wonders as $wonder){
                     if($wonder['name'] == $user->wonderName){

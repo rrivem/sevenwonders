@@ -60,7 +60,7 @@ var SevenWonders = function(socket, args){
         info.addClass(player.wonder.name)
         info.css({
             left: middle - 85 + (boxes.length / 2 - i - 0.5) * 200,
-            'background-image': 'url(images/wonders/' + player.wonder.name + 'A.png)'
+            'background-image': 'url(images/wonders/' + player.wonder.name + player.wonder.side + '.png)'
         });
         info.data('player', player);
         this.gameDiv.append(info);
@@ -79,7 +79,7 @@ var SevenWonders = function(socket, args){
                     name: args.wonder.name,
                     coins: parseInt(args.coins),
                     military: args.military,
-                    wonderside: isA ? 'a' : 'b',
+                    wonderside: isA ? 'A' : 'B',
                     stage: 0,
                     game: self
                 });
@@ -112,7 +112,7 @@ var SevenWonders = function(socket, args){
                 name: args.wonder.name,
                 coins: parseInt(args.coins),
                 military: args.military,
-                wonderside: isA ? 'a' : 'b',
+                wonderside: isA ? 'A' : 'B',
                 stage: 0,
                 game: self
             });
@@ -132,7 +132,7 @@ var SevenWonders = function(socket, args){
             name: args.wonder.name,
             coins: parseInt(args.coins),
             military: args.military,
-            wonderside: args.wonderside || 'a',
+            wonderside: args.wonderside || 'A',
             stage: args.wonder.stage,
             game: this
         });
@@ -277,7 +277,7 @@ SevenWonders.prototype = {
                 name: args.wonder.name,
                 coins: args.coins,
                 stage: args.wonder.stage,
-                side: args.wonder.side,
+                wonderside: args.wonder.side,
                 military: args.military
             });
             $('#cardwindow').append(wonder.wonderDiv);
@@ -498,9 +498,9 @@ SevenWonders.prototype = {
         $('.neighbor.left .info div.stage').css('background-image', 'url(images/tokens/pyramid-stage' + this.neighbors.left.stage + '.png)');
         $('.neighbor.right .info div.stage').css('background-image', 'url(images/tokens/pyramid-stage' + this.neighbors.right.stage + '.png)');
 
-        $('.neighbor.left .info').css('background-image', 'url(images/wonders/' + this.neighbors.left.wonder + 'A.png)');
+        $('.neighbor.left .info').css('background-image', 'url(images/wonders/' + this.neighbors.left.wonder + this.neighbors.left.wonderside  + '.png)');
         $('.neighbor.left .info').addClass(this.neighbors.left.wonder);
-        $('.neighbor.right .info').css('background-image', 'url(images/wonders/' + this.neighbors.right.wonder + 'A.png)');
+        $('.neighbor.right .info').css('background-image', 'url(images/wonders/' + this.neighbors.right.wonder + this.neighbors.right.wonderside + '.png)');
         $('.neighbor.right .info').addClass(this.neighbors.right.wonder);
     },
 
@@ -594,6 +594,7 @@ SevenWonders.prototype = {
     },
     // handle all the different messages sent from the server
     onMessage: function(args, msg){
+        console.log( args );
         switch(args.messageType){
             // we're dealt a new hand
             case 'hand':

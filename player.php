@@ -21,7 +21,7 @@ class Player {
     public $wonder;
     public $wonderName;
     public $wonderStage;
-    public $wonderSide;
+    public $wonderSide ="A";
     public $order;
     public $hand;
     public $selectedCard;
@@ -241,7 +241,8 @@ class Player {
         }
         $tojson = function($a) { return $a->json(); };
         $wonderInfo = array("name" => $this->wonderName,
-                            "stage" => $this->wonderStage);
+                            "stage" => $this->wonderStage,
+                            "side" => $this->wonderSide);
         if (isset($this->wonder['resource']))
             $wonderInfo['resource'] = $this->wonder['resource']->json();
         $startInfo = array(
@@ -256,7 +257,8 @@ class Player {
                                     'resource' => isset($this->leftPlayer->wonder) ? 
                                                   $this->leftPlayer->wonder['resource']->json() : '',
                                     'stage' => $this->leftPlayer->wonderStage,
-                                    'wonder' => $this->leftPlayer->wonderName
+                                    'wonder' => $this->leftPlayer->wonderName,
+                                    'wonderside' => $this->leftPlayer->wonderSide
                                  ),
                                  'right' => array(
                                     'name' => $this->rightPlayer->_name,
@@ -264,7 +266,8 @@ class Player {
                                     'resource' => isset($this->rightPlayer->wonder) ? 
                                                   $this->rightPlayer->wonder['resource']->json() : '',
                                     'stage' => $this->rightPlayer->wonderStage,
-                                    'wonder' => $this->rightPlayer->wonderName
+                                    'wonder' => $this->rightPlayer->wonderName,
+                                    'wonderside' => $this->rightPlayer->wonderSide
                                  )
                                 ),
             'leftcards' => array_map($tojson, $this->leftPlayer->cardsPlayed),
