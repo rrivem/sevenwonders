@@ -1,13 +1,13 @@
 [
     {"name": "alexandria",
-     "a": {"resource": "G",
+     "A": {"resource": "G",
          "stages": [
             {"requirements": "SS", "points": 3},
             {"requirements": "OO", "resource": "C/O/W/S"},
             {"requirements": "GG", "points": 7}
          ]
      },
-     "b": {"resource": "G",
+     "B": {"resource": "G",
          "stages": [
             {"requirements": "CC", "resource": "C/O/W/S"},
             {"requirements": "WW", "resource": "L/G/P"},
@@ -16,14 +16,14 @@
      }},
 
     {"name": "babylon",
-     "a": {"resource": "C",
+     "A": {"resource": "C",
          "stages": [
             {"requirements": "CC", "points": 3},
             {"requirements": "WWW", "science": "any"},
             {"requirements": "CCCC", "points": 7}
          ]
      },
-     "b": {"resource": "C",
+     "B": {"resource": "C",
          "stages": [
             {"requirements": "CL", "points": 3},
             {"requirements": "GWW", "custom": "play2"},
@@ -32,14 +32,14 @@
      }},
 
     {"name": "ephesos",
-     "a": {"resource": "P",
+     "A": {"resource": "P",
          "stages": [
             {"requirements": "SS", "points": 3},
             {"requirements": "WW", "coins": 9},
             {"requirements": "PP", "points": 7}
          ]
      },
-     "b": {"resource": "P",
+     "B": {"resource": "P",
          "stages": [
             {"requirements": "SS", "points": 2, "coins": 4},
             {"requirements": "WW", "points": 3, "coins": 4},
@@ -48,14 +48,14 @@
      }},
 
     {"name": "gizah",
-     "a": {"resource": "S",
+     "A": {"resource": "S",
          "stages": [
             {"requirements": "SS", "points": 3},
             {"requirements": "WWW", "points": 5},
             {"requirements": "SSSS", "points": 7}
          ]
      },
-     "b": {"resource": "S",
+     "B": {"resource": "S",
          "stages": [
             {"requirements": "WW", "points": 3},
             {"requirements": "SSS", "points": 5},
@@ -65,14 +65,14 @@
      }},
 
     {"name": "halikarnassus",
-     "a": {"resource": "L",
+     "A": {"resource": "L",
          "stages": [
             {"requirements": "CC", "points": 3},
             {"requirements": "OOO", "custom": "discard"},
             {"requirements": "LL", "points": 7}
          ]
      },
-     "b": {"resource": "L",
+     "B": {"resource": "L",
          "stages": [
             {"requirements": "OO", "points": 2, "custom": "discard"},
             {"requirements": "CCC", "points": 1, "custom": "discard"},
@@ -81,14 +81,14 @@
      }},
 
     {"name": "olympia",
-     "a": {"resource": "W",
+     "A": {"resource": "W",
          "stages": [
             {"requirements": "WW", "points": 3},
             {"requirements": "SS", "custom": "1free"},
             {"requirements": "OO", "points": 7}
          ]
      },
-     "b": {"resource": "W",
+     "B": {"resource": "W",
          "stages": [
             {"requirements": "WW", "custom": "discount"},
             {"requirements": "SS", "points": 5},
@@ -97,14 +97,14 @@
      }},
 
     {"name": "rhodos",
-     "a": {"resource": "O",
+     "A": {"resource": "O",
          "stages": [
             {"requirements": "WW", "points": 3},
             {"requirements": "CCC", "military": 2},
             {"requirements": "OOOO", "points": 7}
          ]
      },
-     "b": {"resource": "O",
+     "B": {"resource": "O",
          "stages": [
             {"requirements": "SSS", "military": 1, "points": 3, "coins": 3},
             {"requirements": "OOOO", "military": 1, "points": 4, "coins": 4}
