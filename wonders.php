@@ -196,7 +196,7 @@ class SevenWonders {
             }
         }
         if(!$shouldPause){
-             if ($this->turn == $nbTurn ) {
+             if ($this->turn >= $nbTurn ) {
                 // go into a new age
                 $this->log("Ending age {$this->age}");
 
