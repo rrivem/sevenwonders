@@ -281,6 +281,7 @@ SevenWonders.prototype = {
                 military: args.military
             });
             $('#cardwindow').append(wonder.wonderDiv);
+            this.trashCardsDisplayed.push(wonder.wonderDiv);
         }
 
         //allow for a click anywhere to deselect cards
