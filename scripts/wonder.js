@@ -14,7 +14,7 @@ var WonderBoard = function(args){
     this.wonderDiv.append(this.coinDiv);
     this.wonderDiv.append(this.militaryDiv);
 
-    if(args.miltary)
+    if(args.military)
         this.updateMilitary(args.military);
     this.updateCoins(this.coins);
 
