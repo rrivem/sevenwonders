@@ -155,13 +155,13 @@ class SevenWonders {
             if ($this->turn == 7 && !$player->canPlayTwo() ){
                 continue;
             }
-            if($isDiscard && (!isset($player->state) || $player->state != Player::USINGDISCARD)) 
-                continue;
-            $player->playCard($this, $player->selectedCard, $player->state,
-                              $player->pendingCost);  
             if ( $player->canPlayTwo() ){
                 $nbTurn = 7;
             }
+            if($isDiscard && (!isset($player->state) || $player->state != Player::USINGDISCARD)) 
+                continue;
+            $player->playCard($this, $player->selectedCard, $player->state,
+                              $player->pendingCost);              
         }
 
         $shouldPause = false;
