@@ -9,8 +9,7 @@ class Robot extends Player{
     
     private $costWeights = array( 'military' => 1, 'points' => 1, 'coins'=>1, 'cards'=>1, 'wonder'=>1, 'cost'=>1, 'build'=>1 );
     public function __construct($id, $unique, $serverOnly = false, $costWeights = "random" ) {
-        $this->_name = "$unique";
-        $this->_id = $id;
+        parent::__construct($id, $unique);             
         $this->serverOnly = $serverOnly;
         if ( $costWeights === false ){
             foreach ( $this->costWeights as $name => $weight ){
@@ -67,18 +66,7 @@ class Robot extends Player{
     public function getCostWeights() {
         return $this->costWeights;
     }
-    public function id() {
-        return $this->_id;
-    }
-
-    public function name() {
-        return $this->_name;
-    }
-
-    public function setName($name) {
-        $this->_name = $name;
-    }
-
+    
     public function info() {
         return "User {$this->name()} ({$this->id()})";
     }
@@ -97,7 +85,7 @@ class Robot extends Player{
                     $best = $card->getName();
                 }                
             } 
-            if ( $this->serverOnly){
+            if ( $this->serverOnly ){
                 $args = array(
                     'messageType' => 'cardplay',
                     'value' => array( $best,  "play", 0  )
@@ -292,7 +280,7 @@ class Robot extends Player{
                 $targetAge = $this->wonderStage+1;
             }
             if (isset($stage['custom']) && $stage['custom']== "discard" ){
-                if(count($this->game()->discard) == 0 && count($this->hand) > 2 ){
+                if(count($this->game()->discard) < 3 && count($this->hand) > 2 ){
                     // teh wonder has no value if there are not at least one discard card in the discard pile
                     $value = 0;
                 }

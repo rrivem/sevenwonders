@@ -90,7 +90,7 @@ class Player {
     public function getPublicInfo( $short = false){
         return array(
             'id' => $this->_id,
-            'name' => $this->_name,
+            'name' => $this->name(),
             'cards' => $short ? 
                             array_map(function($c) { return $c->json( true ); }, $this->cardsPlayed) :
                             array_map(function($c) { return $c->json(); }, $this->cardsPlayed),
