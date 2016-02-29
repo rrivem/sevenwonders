@@ -595,7 +595,6 @@ SevenWonders.prototype = {
     },
     // handle all the different messages sent from the server
     onMessage: function(args, msg){
-        console.log( args );
         switch(args.messageType){
             // we're dealt a new hand
             case 'hand':

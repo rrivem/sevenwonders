@@ -36,7 +36,7 @@
 
             function onmessage(msg) {
                 var args = JSON.parse(msg.data);
-
+                console.log( args );
                 switch(args.messageType){
                     case 'myname':
                         localStorage.sevenwonders_id = args.id;
