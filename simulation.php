@@ -2,7 +2,7 @@
 <?php
 
 // Set date to avoid errors
-date_default_timezone_set("America/New_York");
+date_default_timezone_set("America/Chicago");
 
 // Run from command prompt > php demo.php
 require_once("wonders.php");

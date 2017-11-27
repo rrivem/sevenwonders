@@ -1,4 +1,4 @@
-#!/php -q
+
 <?php
 
 // Set date to avoid errors
