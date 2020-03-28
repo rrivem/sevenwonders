@@ -1,0 +1,14 @@
+version: "2"
+
+services:
+  web:
+    build: .
+    ports:
+      - 9000:80
+    restart: always
+  socket:
+    build: .
+    command: php server.php
+    ports:
+      - 12345:12345
+    restart: always
